@@ -390,9 +390,14 @@
     <!-- TAB 4: PHÒNG HỌC                                          -->
     <!-- ========================================================= -->
     <section id="view-rooms" class="hidden space-y-4">
-      <div class="bg-white p-4 rounded-2xl border border-slate-200">
-        <h2 class="text-base font-bold text-slate-900">Sơ đồ 10 Phòng học & Quy tắc xếp lớp (Tầng 1 – Tầng 5)</h2>
-        <p class="text-xs text-slate-500">Bấm vào từng thẻ phòng để xem toàn bộ thời khóa biểu chi tiết của phòng đó trong tuần.</p>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Sơ đồ Phòng học & Quy tắc xếp lớp (<span id="rooms-count-header">10</span>)</h2>
+          <p class="text-xs text-slate-500">Bấm vào từng thẻ phòng để xem thời khóa biểu tuần, hoặc dùng nút <strong>Sửa / Xóa / Thêm phòng</strong> để cập nhật cơ sở vật chất.</p>
+        </div>
+        <button onclick="openRoomForm()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-2xs flex items-center gap-1.5 cursor-pointer">
+          <span>+ Thêm phòng học mới</span>
+        </button>
       </div>
       <div id="rooms-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"></div>
     </section>
@@ -401,23 +406,48 @@
     <!-- TAB 5: GIÁO VIÊN                                          -->
     <!-- ========================================================= -->
     <section id="view-teachers" class="hidden space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
-        <div>
-          <h2 class="text-base font-bold text-slate-900">Đội ngũ Giáo viên Music Talent Cầu Giấy (<span id="teacher-count">0</span>)</h2>
-          <p class="text-xs text-slate-500">Quản lý 4 thông tin gọn nhẹ: <strong>Tên giáo viên (*), Số điện thoại, Môn dạy, Tốt nghiệp từ</strong>. Hỗ trợ tải mẫu & nhập nhanh từ Excel.</p>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Đội ngũ Giáo viên Music Talent Cầu Giấy (<span id="teacher-count">0</span>)</h2>
+            <p class="text-xs text-slate-500">Quản lý 4 thông tin gọn nhẹ: <strong>Tên giáo viên (*), Số điện thoại, Môn dạy, Tốt nghiệp từ</strong>. Hỗ trợ tải mẫu & nhập nhanh từ Excel.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <input type="text" id="teacher-search" oninput="renderTeachers()" placeholder="Tìm tên giáo viên, môn dạy, trường..." class="flex-1 sm:w-56 px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500" />
+            <button onclick="downloadTeacherTemplateXLSX()" class="px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
+              <span>📥</span> Tải Excel mẫu (.xlsx)
+            </button>
+            <label class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
+              <span>📤</span> Import Excel
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="importTeachersExcel(event)" class="hidden" />
+            </label>
+            <button onclick="openTeacherForm()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold whitespace-nowrap shadow-2xs cursor-pointer">
+              + Thêm giáo viên
+            </button>
+          </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <input type="text" id="teacher-search" oninput="renderTeachers()" placeholder="Tìm tên giáo viên, môn dạy, trường..." class="flex-1 sm:w-56 px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500" />
-          <button onclick="downloadTeacherTemplateXLSX()" class="px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
-            <span>📥</span> Tải Excel mẫu (.xlsx)
-          </button>
-          <label class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
-            <span>📤</span> Import Excel
-            <input type="file" accept=".xlsx,.xls,.csv" onchange="importTeachersExcel(event)" class="hidden" />
-          </label>
-          <button onclick="openTeacherForm()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold whitespace-nowrap shadow-2xs">
-            + Thêm giáo viên
-          </button>
+
+        <!-- Thanh thao tác chọn nhiều Giáo viên -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 bg-slate-50/80 px-3 py-2 rounded-xl">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="selectAllTeachers()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-50 text-indigo-700 border border-slate-200 text-xs font-semibold cursor-pointer">
+              ☑️ Chọn tất cả
+            </button>
+            <button type="button" onclick="deselectAllTeachers()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold cursor-pointer">
+              ⬜ Bỏ chọn tất cả
+            </button>
+            <span class="text-xs text-slate-600">
+              Đang chọn: <strong id="selected-teacher-count" class="text-indigo-700">0</strong> giáo viên
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="btn-bulk-edit-teachers" onclick="openBulkTeacherModal()" disabled class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold transition cursor-pointer">
+              ✏️ Sửa hàng loạt
+            </button>
+            <button type="button" id="btn-bulk-delete-teachers" onclick="confirmBulkDeleteTeachers()" disabled class="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold transition cursor-pointer">
+              🗑️ Xóa đã chọn
+            </button>
+          </div>
         </div>
       </div>
       <div id="teachers-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
@@ -427,23 +457,48 @@
     <!-- TAB 6: HỌC VIÊN                                           -->
     <!-- ========================================================= -->
     <section id="view-students" class="hidden space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200">
-        <div>
-          <h2 class="text-base font-bold text-slate-900">Danh bạ Học viên cơ sở Cầu Giấy (<span id="student-count">0</span>)</h2>
-          <p class="text-xs text-slate-500">Hiển thị đầy đủ <strong>các môn & lịch học</strong>, theo dõi <strong>số giờ còn lại từng môn</strong> và tự động trừ giờ khi tích điểm danh.</p>
+      <div class="bg-white p-4 rounded-2xl border border-slate-200 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Danh bạ Học viên cơ sở Cầu Giấy (<span id="student-count">0</span>)</h2>
+            <p class="text-xs text-slate-500">Hiển thị đầy đủ <strong>các môn & lịch học</strong>, theo dõi <strong>số giờ còn lại từng môn</strong> và tự động trừ giờ khi tích điểm danh.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <input type="text" id="student-search" oninput="renderStudents()" placeholder="Tìm tên, SĐT, ngày sinh..." class="flex-1 sm:w-56 px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500" />
+            <button onclick="downloadStudentTemplateXLSX()" class="px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
+              <span>📥</span> Tải Excel mẫu (.xlsx)
+            </button>
+            <label class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
+              <span>📤</span> Import Excel
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="importStudentsExcel(event)" class="hidden" />
+            </label>
+            <button onclick="openStudentForm()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold whitespace-nowrap shadow-2xs cursor-pointer">
+              + Thêm học viên
+            </button>
+          </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <input type="text" id="student-search" oninput="renderStudents()" placeholder="Tìm tên, SĐT, ngày sinh..." class="flex-1 sm:w-56 px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500" />
-          <button onclick="downloadStudentTemplateXLSX()" class="px-3 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
-            <span>📥</span> Tải Excel mẫu (.xlsx)
-          </button>
-          <label class="px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition cursor-pointer">
-            <span>📤</span> Import Excel
-            <input type="file" accept=".xlsx,.xls,.csv" onchange="importStudentsExcel(event)" class="hidden" />
-          </label>
-          <button onclick="openStudentForm()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold whitespace-nowrap shadow-2xs">
-            + Thêm học viên
-          </button>
+
+        <!-- Thanh thao tác chọn nhiều Học viên -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 bg-slate-50/80 px-3 py-2 rounded-xl">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="selectAllStudents()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-50 text-indigo-700 border border-slate-200 text-xs font-semibold cursor-pointer">
+              ☑️ Chọn tất cả
+            </button>
+            <button type="button" onclick="deselectAllStudents()" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold cursor-pointer">
+              ⬜ Bỏ chọn tất cả
+            </button>
+            <span class="text-xs text-slate-600">
+              Đang chọn: <strong id="selected-student-count" class="text-indigo-700">0</strong> học viên
+            </span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="btn-bulk-edit-students" onclick="openBulkStudentModal()" disabled class="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold transition cursor-pointer">
+              ✏️ Sửa / Cộng-trừ giờ hàng loạt
+            </button>
+            <button type="button" id="btn-bulk-delete-students" onclick="confirmBulkDeleteStudents()" disabled class="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:pointer-events-none text-white text-xs font-bold transition cursor-pointer">
+              🗑️ Xóa đã chọn
+            </button>
+          </div>
         </div>
       </div>
       <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
@@ -451,6 +506,9 @@
           <table class="w-full text-left border-collapse text-sm">
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+                <th class="py-3 px-3 w-10 text-center">
+                  <input type="checkbox" id="student-master-checkbox" onchange="toggleMasterStudentCheck(this.checked)" class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" title="Chọn / Bỏ chọn tất cả đang hiển thị" />
+                </th>
                 <th class="py-3 px-4 font-semibold">Mã HV</th>
                 <th class="py-3 px-4 font-semibold">Tên học viên</th>
                 <th class="py-3 px-4 font-semibold">SĐT / Ngày sinh</th>
@@ -734,6 +792,9 @@
       activeBranchId: "branch_cau_giay",
       branches: []
     };
+
+    let selectedTeacherIds = new Set();
+    let selectedStudentIds = new Set();
 
     let adminLastActivityAt = 0;
     let adminIdleCheckTimer = null;
@@ -1064,6 +1125,8 @@
 
     function switchBranch(branchId) {
       branchRegistry.activeBranchId = branchId;
+      selectedTeacherIds.clear();
+      selectedStudentIds.clear();
       saveBranchRegistry();
       loadActiveBranchData();
       updateBrandHeaderUI();
@@ -1130,16 +1193,310 @@
     }
 
     // -------------------------------------------------------------------------
-    // 3. TIỆN ÍCH CHUNG, MÀU BỘ MÔN & XỬ LÝ THỜI GIAN
+    // 11. TAB PHÒNG HỌC (THÊM, SỬA, CẬP NHẬT, XÓA)
     // -------------------------------------------------------------------------
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    function renderRooms() {
+      const countEl = document.getElementById('rooms-count-header');
+      if (countEl) countEl.textContent = state.rooms.length;
+
+      document.getElementById('rooms-grid').innerHTML = state.rooms.map(r => {
+        const clsCount = state.classes.filter(c => c.room === r.name).length;
+        return `
+          <div onclick="openRoomDetail('${r.id}')" class="bg-white p-4 rounded-2xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between gap-2.5">
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold">${escapeHtml(r.floor)}</span>
+                <span class="text-xs font-bold text-emerald-700">${clsCount} ca/tuần</span>
+              </div>
+              <h3 class="font-bold text-slate-900 text-sm mt-1.5">${escapeHtml(r.name)}</h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">🎹 ${escapeHtml(r.equipment || 'Chưa ghi thiết bị')} • Sức chứa: ${r.capacity || 4}</p>
+            </div>
+            <div class="space-y-2">
+              <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-600">
+                <div class="font-semibold text-slate-800">Môn: ${escapeHtml(r.subjects || 'Đa năng')}</div>
+                <p class="mt-0.5 line-clamp-2 text-slate-500">${escapeHtml(r.rules || 'Không có quy tắc riêng')}</p>
+              </div>
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5" onclick="event.stopPropagation()">
+                <button type="button" onclick="openRoomForm('${r.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold cursor-pointer">✏️ Sửa</button>
+                <button type="button" onclick="confirmDeleteRoom('${r.id}')" class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-[11px] font-semibold cursor-pointer">🗑️ Xóa</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openRoomForm(editId = null) {
+      const r = editId ? state.rooms.find(x => x.id === editId) : null;
+      openModal(
+        r ? `✏️ Sửa thông tin Phòng học: ${escapeHtml(r.name)}` : '➕ Thêm Phòng học mới',
+        `
+          <form id="room-form" onsubmit="saveRoomForm(event, '${editId || ''}')" class="space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Tên phòng học (*)</label>
+                <input type="text" id="rf-name" required value="${escapeHtml(r?.name || '')}" placeholder="VD: Phòng 305" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Tầng / Khu vực (*)</label>
+                <input type="text" id="rf-floor" required value="${escapeHtml(r?.floor || 'Tầng 3')}" placeholder="VD: Tầng 3" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Trang thiết bị</label>
+                <input type="text" id="rf-equipment" value="${escapeHtml(r?.equipment || '')}" placeholder="VD: Có 4 đàn piano, điều hòa..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Sức chứa tối đa (người)</label>
+                <input type="number" min="1" id="rf-capacity" value="${r?.capacity || 6}" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Bộ môn giảng dạy ưu tiên</label>
+              <input type="text" id="rf-subjects" value="${escapeHtml(r?.subjects || '')}" placeholder="VD: Piano, Thanh nhạc, Violin..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Quy tắc xếp lớp / Ghi chú phòng</label>
+              <textarea id="rf-rules" rows="2" placeholder="VD: Ưu tiên lớp Piano nhóm, nếu trống xếp lớp cá nhân..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">${escapeHtml(r?.rules || '')}</textarea>
+            </div>
+          </form>
+        `,
+        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button onclick="document.getElementById('room-form').requestSubmit()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold">💾 Lưu phòng học</button>
+        `
+      );
+    }
+
+    function saveRoomForm(e, editId) {
+      e.preventDefault();
+      const name = document.getElementById('rf-name').value.trim();
+      if (!name) return;
+      const floor = document.getElementById('rf-floor').value.trim() || 'Tầng 1';
+      const equipment = document.getElementById('rf-equipment').value.trim();
+      const capacity = Math.max(1, Number(document.getElementById('rf-capacity').value || 4));
+      const subjects = document.getElementById('rf-subjects').value.trim();
+      const rules = document.getElementById('rf-rules').value.trim();
+
+      if (editId) {
+        const idx = state.rooms.findIndex(x => x.id === editId);
+        if (idx >= 0) {
+          const oldName = state.rooms[idx].name;
+          state.rooms[idx] = { ...state.rooms[idx], name, floor, equipment, capacity, subjects, rules };
+          if (oldName !== name) {
+            state.classes.forEach(c => { if (c.room === oldName) c.room = name; });
+          }
+        }
+      } else {
+        const newId = `P${String(state.rooms.length + 1).padStart(2, '0')}_${Date.now().toString().slice(-3)}`;
+        state.rooms.push({ id: newId, name, floor, equipment, capacity, subjects, rules });
+      }
+
+      saveState();
+      populateFilterDropdowns();
+      closeModal();
+      renderAll();
+      showToast(editId ? "Đã cập nhật thông tin phòng học!" : "Đã thêm phòng học mới!");
+    }
+
+    function confirmDeleteRoom(roomId) {
+      const r = state.rooms.find(x => x.id === roomId);
+      if (!r) return;
+      const linkedClasses = state.classes.filter(c => c.room === r.name).length;
+      openModal(
+        `🗑️ Xác nhận xóa phòng: ${escapeHtml(r.name)}`,
+        `
+          <div class="space-y-2 text-xs sm:text-sm text-slate-700">
+            <p>Bạn có chắc chắn muốn xóa <strong>${escapeHtml(r.name)}</strong> khỏi danh sách phòng học?</p>
+            ${linkedClasses > 0 ? `<div class="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold">⚠️ Lưu ý: Phòng này đang có <strong>${linkedClasses} ca học</strong> trong thời khóa biểu. Các ca học vẫn được giữ lại nhưng bạn nên chuyển sang phòng khác.</div>` : ''}
+          </div>
+        `,
+        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button onclick="executeDeleteRoom('${roomId}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Xóa phòng ngay</button>
+        `
+      );
+    }
+
+    function executeDeleteRoom(roomId) {
+      state.rooms = state.rooms.filter(r => r.id !== roomId);
+      saveState();
+      populateFilterDropdowns();
+      closeModal();
+      renderAll();
+      showToast("Đã xóa phòng học!", "warning");
+    }
+
+    function openRoomDetail(roomId) {
+      const r = state.rooms.find(x => x.id === roomId);
+      if (!r) return;
+      const roomClasses = state.classes.filter(c => c.room === r.name).sort((a, b) => DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day) || timeToMin(a.start) - timeToMin(b.start));
+      const rowsHtml = roomClasses.length === 0
+        ? `<p class="text-xs text-slate-400 text-center py-4">Phòng này hiện chưa có ca học nào.</p>`
+        : roomClasses.map(c => `
+            <div onclick="openClassDetail('${c.id}')" class="flex items-center justify-between p-2 rounded-xl border border-slate-200 hover:bg-indigo-50/50 cursor-pointer text-xs">
+              <div><span class="font-bold text-indigo-700">${c.day} (${c.start}-${c.end})</span> • <strong>${escapeHtml(c.name)}</strong></div>
+              <span class="text-slate-600">${escapeHtml(c.teacher)}</span>
+            </div>
+          `).join('');
+
+      openModal(
+        `🚪 ${escapeHtml(r.name)} (${escapeHtml(r.floor)})`,
+        `
+          <div class="space-y-3">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+              <div><strong>Thiết bị:</strong> ${escapeHtml(r.equipment || '—')} • <strong>Sức chứa:</strong> ${r.capacity || 4} người</div>
+              <div><strong>Môn sử dụng:</strong> ${escapeHtml(r.subjects || '—')}</div>
+              <div><strong>Quy tắc ưu tiên:</strong> ${escapeHtml(r.rules || '—')}</div>
+            </div>
+            <div class="text-xs font-bold text-slate-700">Lịch sử dụng trong tuần (${roomClasses.length} ca):</div>
+            <div class="space-y-1.5 max-h-64 overflow-y-auto">${rowsHtml}</div>
+          </div>
+        `,
+        `
+          <button onclick="openRoomForm('${r.id}')" class="px-3.5 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold">✏️ Sửa phòng</button>
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Đóng</button>
+        `
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // 12. TAB GIÁO VIÊN (4 TRƯỜNG + CHỌN NHIỀU + SỬA/XÓA HÀNG LOẠT)
+    // -------------------------------------------------------------------------
+    function getFilteredTeachers() {
+      const q = (document.getElementById('teacher-search')?.value || '').trim().toLowerCase();
+      return state.teachers.filter(t => {
+        if (!q) return true;
+        return `${t.name} ${t.phone} ${t.subject} ${t.graduatedFrom}`.toLowerCase().includes(q);
+      });
+    }
+
+    function updateTeacherBulkToolbar() {
+      const countEl = document.getElementById('selected-teacher-count');
+      const editBtn = document.getElementById('btn-bulk-edit-teachers');
+      const delBtn = document.getElementById('btn-bulk-delete-teachers');
+      const cnt = selectedTeacherIds.size;
+      if (countEl) countEl.textContent = cnt;
+      if (editBtn) editBtn.disabled = cnt === 0;
+      if (delBtn) delBtn.disabled = cnt === 0;
+    }
+
+    function toggleTeacherSelection(id, checked) {
+      if (checked) selectedTeacherIds.add(id);
+      else selectedTeacherIds.delete(id);
+      renderTeachers();
+    }
+
+    function selectAllTeachers() {
+      getFilteredTeachers().forEach(t => selectedTeacherIds.add(t.id));
+      renderTeachers();
+    }
+
+    function deselectAllTeachers() {
+      selectedTeacherIds.clear();
+      renderTeachers();
+    }
+
+    function renderTeachers() {
+      const filtered = getFilteredTeachers();
+      document.getElementById('teacher-count').textContent = filtered.length;
+      updateTeacherBulkToolbar();
+
+      document.getElementById('teachers-grid').innerHTML = filtered.map(t => {
+        const clsCount = state.classes.filter(c => c.teacher === t.name).length;
+        const isSelected = selectedTeacherIds.has(t.id);
+        return `
+          <div onclick="openTeacherDetail('${t.id}')" class="bg-white p-4 rounded-2xl border ${isSelected ? 'border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50/20' : 'border-slate-200 hover:border-indigo-400'} hover:shadow-md transition cursor-pointer flex flex-col justify-between gap-2">
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <label onclick="event.stopPropagation()" class="inline-flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleTeacherSelection('${t.id}', this.checked)" class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
+                  <span class="text-[11px] font-bold text-slate-400">${t.id}</span>
+                </label>
+                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">${clsCount} ca/tuần</span>
+              </div>
+              <h3 class="font-bold text-slate-900 text-sm mt-1.5">👩‍🏫 ${escapeHtml(t.name)}</h3>
+              <div class="text-xs text-slate-600 mt-1">📞 ${escapeHtml(t.phone || 'Chưa cập nhật')}</div>
+              <div class="text-xs text-indigo-700 font-semibold mt-0.5">🎵 ${escapeHtml(t.subject || 'Chưa cập nhật')}</div>
+              <div class="text-[11px] text-slate-500 mt-0.5">🎓 ${escapeHtml(t.graduatedFrom || 'Chưa cập nhật')}</div>
+            </div>
+            <div class="pt-2 border-t border-slate-100 flex justify-end gap-1.5" onclick="event.stopPropagation()">
+              <button onclick="openTeacherForm('${t.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold cursor-pointer">Sửa</button>
+              <button onclick="deleteTeacher('${t.id}')" class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-[11px] font-semibold cursor-pointer">Xóa</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openBulkTeacherModal() {
+      const cnt = selectedTeacherIds.size;
+      if (cnt === 0) return;
+      openModal(
+        `✏️ Sửa hàng loạt cho ${cnt} Giáo viên đang chọn`,
+        `
+          <form id="bulk-teacher-form" onsubmit="saveBulkTeacherForm(event)" class="space-y-3">
+            <p class="text-xs text-slate-500">Chỉ những ô bạn nhập giá trị mới sẽ được cập nhật cho tất cả <strong>${cnt} giáo viên</strong> đã chọn (để trống nếu muốn giữ nguyên).</p>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Cập nhật Môn dạy mới</label>
+              <input type="text" id="bulk-tf-subject" placeholder="VD: Piano, Thanh nhạc..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Cập nhật Tốt nghiệp từ</label>
+              <input type="text" id="bulk-tf-grad" placeholder="VD: Học viện Âm nhạc Quốc gia VN" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+            </div>
+          </form>
+        `,
+        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button onclick="document.getElementById('bulk-teacher-form').requestSubmit()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold">💾 Áp dụng cho ${cnt} giáo viên</button>
+        `
+      );
+    }
+
+    function saveBulkTeacherForm(e) {
+      e.preventDefault();
+      const newSub = document.getElementById('bulk-tf-subject').value.trim();
+      const newGrad = document.getElementById('bulk-tf-grad').value.trim();
+      if (!newSub && !newGrad) {
+        closeModal();
+        return;
+      }
+      state.teachers.forEach(t => {
+        if (selectedTeacherIds.has(t.id)) {
+          if (newSub) t.subject = newSub;
+          if (newGrad) t.graduatedFrom = newGrad;
+        }
+      });
+      saveState();
+      closeModal();
+      renderAll();
+      showToast(`Đã cập nhật thông tin cho ${selectedTeacherIds.size} giáo viên!`);
+    }
+
+    function confirmBulkDeleteTeachers() {
+      const cnt = selectedTeacherIds.size;
+      if (cnt === 0) return;
+      openModal(
+        `🗑️ Xác nhận xóa ${cnt} Giáo viên`,
+        `<p class="text-xs sm:text-sm text-slate-700">Bạn có chắc chắn muốn xóa vĩnh viễn <strong>${cnt} giáo viên</strong> đang chọn khỏi danh sách?</p>`,
+        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button onclick="executeBulkDeleteTeachers()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Xóa ${cnt} giáo viên</button>
+        `
+      );
+    }
+
+    function executeBulkDeleteTeachers() {
+      const cnt = selectedTeacherIds.size;
+      state.teachers = state.teachers.filter(t => !selectedTeacherIds.has(t.id));
+      selectedTeacherIds.clear();
+      saveState();
+      populateFilterDropdowns();
+      closeModal();
+      renderAll();
+      showToast(`Đã xóa ${cnt} giáo viên!`, "warning");
     }
 
     function timeToMin(t) {
@@ -1227,21 +1584,234 @@
     }
 
     // -------------------------------------------------------------------------
-    // 4. ĐIỀU HƯỚNG TAB & ĐỒNG BỘ NGÀY LÀM VIỆC
+    // 13. TAB HỌC VIÊN (ĐA MÔN, GIỜ KHÓA HỌC + CHỌN NHIỀU + SỬA/XÓA HÀNG LOẠT)
     // -------------------------------------------------------------------------
-    function switchTab(tab) {
-      state.currentTab = tab;
-      const tabs = ['schedule', 'history', 'report', 'tuition', 'rooms', 'teachers', 'students'];
-      tabs.forEach(t => {
+    function getStudentEnrolledSubjectsMap(studentName) {
+      const map = {};
+      state.classes.filter(c => (c.students || []).includes(studentName)).forEach(c => {
+        if (!map[c.subject]) map[c.subject] = [];
+        map[c.subject].push(`${c.day} (${c.start}-${c.end})`);
+      });
+      return map;
+    }
+
+    function getFilteredStudents() {
+      const q = (document.getElementById('student-search')?.value || '').trim().toLowerCase();
+      return state.students.filter(s => {
+        if (!q) return true;
+        return `${s.id} ${s.name} ${s.phone} ${s.dob} ${s.courseNote || ''}`.toLowerCase().includes(q);
+      });
+    }
+
+    function updateStudentBulkToolbar(filteredList) {
+      const countEl = document.getElementById('selected-student-count');
+      const editBtn = document.getElementById('btn-bulk-edit-students');
+      const delBtn = document.getElementById('btn-bulk-delete-students');
+      const masterCb = document.getElementById('student-master-checkbox');
+      const cnt = selectedStudentIds.size;
+      if (countEl) countEl.textContent = cnt;
+      if (editBtn) editBtn.disabled = cnt === 0;
+      if (delBtn) delBtn.disabled = cnt === 0;
+      if (masterCb) {
+        masterCb.checked = filteredList.length > 0 && filteredList.every(s => selectedStudentIds.has(s.id));
+      }
+    }
+
+    function toggleStudentSelection(id, checked) {
+      if (checked) selectedStudentIds.add(id);
+      else selectedStudentIds.delete(id);
+      renderStudents();
+    }
+
+    function toggleMasterStudentCheck(checked) {
+      const filtered = getFilteredStudents();
+      if (checked) filtered.forEach(s => selectedStudentIds.add(s.id));
+      else filtered.forEach(s => selectedStudentIds.delete(s.id));
+      renderStudents();
+    }
+
+    function selectAllStudents() {
+      getFilteredStudents().forEach(s => selectedStudentIds.add(s.id));
+      renderStudents();
+    }
+
+    function deselectAllStudents() {
+      selectedStudentIds.clear();
+      renderStudents();
+    }
+
+    function renderStudents() {
+      const filtered = getFilteredStudents();
+      document.getElementById('student-count').textContent = filtered.length;
+      updateStudentBulkToolbar(filtered);
+
+      const tbody = document.getElementById('students-table-body');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-10 text-center text-slate-400 text-xs">Không tìm thấy học viên nào.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(s => {
+        const enrolledMap = getStudentEnrolledSubjectsMap(s.name);
+        const allSubjects = [...new Set([...Object.keys(enrolledMap), ...Object.keys(s.courseHours || {})])];
+        const isSelected = selectedStudentIds.has(s.id);
+
+        const subjectsHtml = allSubjects.length === 0
+          ? `<span class="text-slate-400 italic text-[11px]">Chưa xếp lớp</span>`
+          : allSubjects.map(sub => {
+              const sty = getSubjectStyle(sub);
+              const sched = enrolledMap[sub] ? enrolledMap[sub].join(', ') : 'Chưa có lịch cố định';
+              return `
+                <div class="mb-1 last:mb-0">
+                  <span class="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold ${sty.badge}">${escapeHtml(sub)}</span>
+                  <span class="text-[11px] text-slate-600 ml-1">${escapeHtml(sched)}</span>
+                </div>
+              `;
+            }).join('');
+
+        const hoursHtml = allSubjects.length === 0
+          ? '—'
+          : allSubjects.map(sub => {
+              const hrs = (s.courseHours && s.courseHours[sub] !== undefined) ? s.courseHours[sub] : 0;
+              return `<div class="text-[11px] font-bold ${hrs < 4 ? 'text-rose-600' : 'text-indigo-700'}">${escapeHtml(sub)}: còn ${hrs}h</div>`;
+            }).join('');
+
+        return `
+          <tr onclick="openStudentDetail('${s.id}')" class="${isSelected ? 'bg-indigo-50/60' : 'hover:bg-slate-50'} cursor-pointer text-xs">
+            <td class="py-2.5 px-3 text-center" onclick="event.stopPropagation()">
+              <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleStudentSelection('${s.id}', this.checked)" class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
+            </td>
+            <td class="py-2.5 px-4 font-bold text-slate-500">${s.id}</td>
+            <td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(s.name)}</td>
+            <td class="py-2.5 px-4">
+              <div class="font-semibold text-slate-700">📞 ${escapeHtml(s.phone || '—')}</div>
+              <div class="text-[11px] text-slate-500">🎂 ${escapeHtml(s.dob || '—')}</div>
+            </td>
+            <td class="py-2.5 px-4">${subjectsHtml}</td>
+            <td class="py-2.5 px-4">
+              ${hoursHtml}
+              ${s.courseNote ? `<div class="text-[10px] text-slate-500 italic mt-0.5">${escapeHtml(s.courseNote)}</div>` : ''}
+            </td>
+            <td class="py-2.5 px-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+              <button onclick="openStudentForm('${s.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold cursor-pointer">Sửa / Giờ</button>
+              <button onclick="deleteStudent('${s.id}')" class="ml-1 px-2 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold cursor-pointer">Xóa</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openBulkStudentModal() {
+      const cnt = selectedStudentIds.size;
+      if (cnt === 0) return;
+      openModal(
+        `✏️ Sửa / Cộng-trừ giờ hàng loạt cho ${cnt} Học viên`,
+        `
+          <form id="bulk-student-form" onsubmit="saveBulkStudentForm(event)" class="space-y-3">
+            <p class="text-xs text-slate-500">Thao tác áp dụng đồng loạt cho <strong>${cnt} học viên</strong> đang chọn.</p>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+              <div class="text-xs font-bold text-slate-800">⏱️ Cập nhật quỹ giờ khóa học (Tùy chọn)</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1">Bộ môn áp dụng</label>
+                  <input type="text" id="bulk-sf-sub" placeholder="VD: Piano" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1">Thao tác giờ</label>
+                  <select id="bulk-sf-mode" class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white">
+                    <option value="add">+ Cộng thêm giờ</option>
+                    <option value="set">= Đặt lại số giờ cố định</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1">Số giờ</label>
+                  <input type="number" step="0.5" id="bulk-sf-hrs" placeholder="VD: 12" class="w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border border-slate-300 bg-white" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Cập nhật Ghi chú khóa học (Để trống nếu giữ nguyên)</label>
+              <input type="text" id="bulk-sf-note" placeholder="VD: Đã đóng học phí kỳ mới..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300" />
+            </div>
+          </form>
+        `,
+        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button onclick="document.getElementById('bulk-student-form').requestSubmit()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold">💾 Áp dụng cho ${cnt} học viên</button>
+        `
+      );
+    }
+
+    function saveBulkStudentForm(e) {
+      e.preventDefault();
+      const sub = document.getElementById('bulk-sf-sub').value.trim();
+      const mode = document.getElementById('bulk-sf-mode').value;
+      const hrsRaw = document.getElementById('bulk-sf-hrs').value;
+      const note = document.getElementById('bulk-sf-note').value.trim();
+
+      state.students.forEach(s => {
+        if (!selectedStudentIds.has(s.id)) return;
+        if (sub && hrsRaw !== '') {
+          const val = Number(hrsRaw) || 0;
+          if (!s.courseHours) s.courseHours = {};
+          const cur = Number(s.courseHours[sub] || 0);
+          s.courseHours[sub] = mode === 'add' ? Math.max(0, Math.round((cur + val) * 100) / 100) : Math.max(0, val);
+        }
+        if (note) {
+          s.courseNote = note;
+        }
+      });
+
+      saveState();
+      closeModal();
+      renderAll();
+      showToast(`Đã cập nhật đồng loạt cho ${selectedStudentIds.size} học viên!`);
+    }
+
+    function confirmBulkDeleteStudents() {
+      const cnt = selectedStudentIds.size;
+      if (cnt === 0) return;
+      openModal(
+        `🗑️ Xác nhận xóa ${cnt} Học viên`,
+        `<p class="text-xs sm:text-sm text-slate-700">Bạn có chắc chắn muốn xóa vĩnh viễn <strong>${cnt} học viên</strong> đang chọn khỏi danh bạ?</p>`,
+        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Hủy</button>
+          <button onclick="executeBulkDeleteStudents()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold">Xóa ${cnt} học viên</button>
+        `
+      );
+    }
+
+    function executeBulkDeleteStudents() {
+      const cnt = selectedStudentIds.size;
+      state.students = state.students.filter(s => !selectedStudentIds.has(s.id));
+      selectedStudentIds.clear();
+      saveState();
+      closeModal();
+      renderAll();
+      showToast(`Đã xóa ${cnt} học viên!`, "warning");
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function switchTab(tabName) {
+      state.currentTab = tabName;
+      const allTabs = ['schedule', 'history', 'report', 'tuition', 'rooms', 'teachers', 'students'];
+      allTabs.forEach(t => {
         const sec = document.getElementById(`view-${t}`);
+        if (sec) sec.classList.toggle('hidden', t !== tabName);
         const btn = document.getElementById(`tab-${t}`);
-        if (sec) sec.classList.toggle('hidden', t !== tab);
         if (btn) {
-          if (t === tab) {
-            btn.className = 'nav-tab px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1 whitespace-nowrap bg-white text-indigo-700 shadow-2xs';
-          } else {
-            btn.className = 'nav-tab px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 whitespace-nowrap text-slate-600 hover:text-slate-900';
-          }
+          btn.className = t === tabName
+            ? 'nav-tab px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1 whitespace-nowrap bg-white text-indigo-700 shadow-2xs'
+            : 'nav-tab px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 whitespace-nowrap text-slate-600 hover:text-slate-900';
         }
       });
       renderAll();
@@ -2505,94 +3075,8 @@
     }
 
     // -------------------------------------------------------------------------
-    // 11. TAB PHÒNG HỌC
+    // 12B. CHI TIẾT & FORM GIÁO VIÊN (4 TRƯỜNG + EXCEL MẪU + IMPORT)
     // -------------------------------------------------------------------------
-    function renderRooms() {
-      document.getElementById('rooms-grid').innerHTML = state.rooms.map(r => {
-        const clsCount = state.classes.filter(c => c.room === r.name).length;
-        return `
-          <div onclick="openRoomDetail('${r.id}')" class="bg-white p-4 rounded-2xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between gap-2.5">
-            <div>
-              <div class="flex items-center justify-between gap-2">
-                <span class="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 text-[10px] font-bold">${escapeHtml(r.floor)}</span>
-                <span class="text-xs font-bold text-emerald-700">${clsCount} ca/tuần</span>
-              </div>
-              <h3 class="font-bold text-slate-900 text-sm mt-1.5">${escapeHtml(r.name)}</h3>
-              <p class="text-[11px] text-slate-500 mt-0.5">🎹 ${escapeHtml(r.equipment)}</p>
-            </div>
-            <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-600">
-              <div class="font-semibold text-slate-800">Môn: ${escapeHtml(r.subjects)}</div>
-              <p class="mt-0.5 line-clamp-2 text-slate-500">${escapeHtml(r.rules)}</p>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function openRoomDetail(roomId) {
-      const r = state.rooms.find(x => x.id === roomId);
-      if (!r) return;
-      const roomClasses = state.classes.filter(c => c.room === r.name).sort((a, b) => DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day) || timeToMin(a.start) - timeToMin(b.start));
-      const rowsHtml = roomClasses.length === 0
-        ? `<p class="text-xs text-slate-400 text-center py-4">Phòng này hiện chưa có ca học nào.</p>`
-        : roomClasses.map(c => `
-            <div onclick="openClassDetail('${c.id}')" class="flex items-center justify-between p-2 rounded-xl border border-slate-200 hover:bg-indigo-50/50 cursor-pointer text-xs">
-              <div><span class="font-bold text-indigo-700">${c.day} (${c.start}-${c.end})</span> • <strong>${escapeHtml(c.name)}</strong></div>
-              <span class="text-slate-600">${escapeHtml(c.teacher)}</span>
-            </div>
-          `).join('');
-
-      openModal(
-        `🚪 ${escapeHtml(r.name)} (${escapeHtml(r.floor)})`,
-        `
-          <div class="space-y-3">
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
-              <div><strong>Thiết bị:</strong> ${escapeHtml(r.equipment)} • <strong>Sức chứa:</strong> ${r.capacity} người</div>
-              <div><strong>Môn sử dụng:</strong> ${escapeHtml(r.subjects)}</div>
-              <div><strong>Quy tắc ưu tiên:</strong> ${escapeHtml(r.rules)}</div>
-            </div>
-            <div class="text-xs font-bold text-slate-700">Lịch sử dụng trong tuần (${roomClasses.length} ca):</div>
-            <div class="space-y-1.5 max-h-64 overflow-y-auto">${rowsHtml}</div>
-          </div>
-        `,
-        `<button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Đóng</button>`
-      );
-    }
-
-    // -------------------------------------------------------------------------
-    // 12. TAB GIÁO VIÊN (4 TRƯỜNG + EXCEL MẪU + IMPORT)
-    // -------------------------------------------------------------------------
-    function renderTeachers() {
-      const q = (document.getElementById('teacher-search')?.value || '').trim().toLowerCase();
-      const filtered = state.teachers.filter(t => {
-        if (!q) return true;
-        return `${t.name} ${t.phone} ${t.subject} ${t.graduatedFrom}`.toLowerCase().includes(q);
-      });
-      document.getElementById('teacher-count').textContent = filtered.length;
-
-      document.getElementById('teachers-grid').innerHTML = filtered.map(t => {
-        const clsCount = state.classes.filter(c => c.teacher === t.name).length;
-        return `
-          <div onclick="openTeacherDetail('${t.id}')" class="bg-white p-4 rounded-2xl border border-slate-200 hover:border-indigo-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between gap-2">
-            <div>
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold text-slate-400">${t.id}</span>
-                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">${clsCount} ca/tuần</span>
-              </div>
-              <h3 class="font-bold text-slate-900 text-sm mt-1">👩‍🏫 ${escapeHtml(t.name)}</h3>
-              <div class="text-xs text-slate-600 mt-1">📞 ${escapeHtml(t.phone || 'Chưa cập nhật')}</div>
-              <div class="text-xs text-indigo-700 font-semibold mt-0.5">🎵 ${escapeHtml(t.subject || 'Chưa cập nhật')}</div>
-              <div class="text-[11px] text-slate-500 mt-0.5">🎓 ${escapeHtml(t.graduatedFrom || 'Chưa cập nhật')}</div>
-            </div>
-            <div class="pt-2 border-t border-slate-100 flex justify-end gap-1.5" onclick="event.stopPropagation()">
-              <button onclick="openTeacherForm('${t.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold">Sửa</button>
-              <button onclick="deleteTeacher('${t.id}')" class="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 text-[11px] font-semibold">Xóa</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
     function openTeacherDetail(teacherId) {
       const t = state.teachers.find(x => x.id === teacherId);
       if (!t) return;
@@ -2751,77 +3235,8 @@
     }
 
     // -------------------------------------------------------------------------
-    // 13. TAB HỌC VIÊN (ĐA MÔN, GIỜ KHÓA HỌC + EXCEL MẪU + IMPORT)
+    // 13B. CHI TIẾT & FORM HỌC VIÊN (ĐA MÔN, GIỜ KHÓA HỌC + EXCEL MẪU + IMPORT)
     // -------------------------------------------------------------------------
-    function getStudentEnrolledSubjectsMap(studentName) {
-      const map = {};
-      state.classes.filter(c => (c.students || []).includes(studentName)).forEach(c => {
-        if (!map[c.subject]) map[c.subject] = [];
-        map[c.subject].push(`${c.day} (${c.start}-${c.end})`);
-      });
-      return map;
-    }
-
-    function renderStudents() {
-      const q = (document.getElementById('student-search')?.value || '').trim().toLowerCase();
-      const filtered = state.students.filter(s => {
-        if (!q) return true;
-        return `${s.id} ${s.name} ${s.phone} ${s.dob} ${s.courseNote || ''}`.toLowerCase().includes(q);
-      });
-      document.getElementById('student-count').textContent = filtered.length;
-
-      const tbody = document.getElementById('students-table-body');
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-10 text-center text-slate-400 text-xs">Không tìm thấy học viên nào.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = filtered.map(s => {
-        const enrolledMap = getStudentEnrolledSubjectsMap(s.name);
-        const allSubjects = [...new Set([...Object.keys(enrolledMap), ...Object.keys(s.courseHours || {})])];
-
-        const subjectsHtml = allSubjects.length === 0
-          ? `<span class="text-slate-400 italic text-[11px]">Chưa xếp lớp</span>`
-          : allSubjects.map(sub => {
-              const sty = getSubjectStyle(sub);
-              const sched = enrolledMap[sub] ? enrolledMap[sub].join(', ') : 'Chưa có lịch cố định';
-              return `
-                <div class="mb-1 last:mb-0">
-                  <span class="inline-block px-1.5 py-0.2 rounded text-[10px] font-bold ${sty.badge}">${escapeHtml(sub)}</span>
-                  <span class="text-[11px] text-slate-600 ml-1">${escapeHtml(sched)}</span>
-                </div>
-              `;
-            }).join('');
-
-        const hoursHtml = allSubjects.length === 0
-          ? '—'
-          : allSubjects.map(sub => {
-              const hrs = (s.courseHours && s.courseHours[sub] !== undefined) ? s.courseHours[sub] : 0;
-              return `<div class="text-[11px] font-bold ${hrs < 4 ? 'text-rose-600' : 'text-indigo-700'}">${escapeHtml(sub)}: còn ${hrs}h</div>`;
-            }).join('');
-
-        return `
-          <tr onclick="openStudentDetail('${s.id}')" class="hover:bg-slate-50 cursor-pointer text-xs">
-            <td class="py-2.5 px-4 font-bold text-slate-500">${s.id}</td>
-            <td class="py-2.5 px-4 font-bold text-slate-900">${escapeHtml(s.name)}</td>
-            <td class="py-2.5 px-4">
-              <div class="font-semibold text-slate-700">📞 ${escapeHtml(s.phone || '—')}</div>
-              <div class="text-[11px] text-slate-500">🎂 ${escapeHtml(s.dob || '—')}</div>
-            </td>
-            <td class="py-2.5 px-4">${subjectsHtml}</td>
-            <td class="py-2.5 px-4">
-              ${hoursHtml}
-              ${s.courseNote ? `<div class="text-[10px] text-slate-500 italic mt-0.5">${escapeHtml(s.courseNote)}</div>` : ''}
-            </td>
-            <td class="py-2.5 px-4 text-right whitespace-nowrap" onclick="event.stopPropagation()">
-              <button onclick="openStudentForm('${s.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold">Sửa / Giờ</button>
-              <button onclick="deleteStudent('${s.id}')" class="ml-1 px-2 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold">Xóa</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
     function openStudentDetail(studentId) {
       const s = state.students.find(x => x.id === studentId);
       if (!s) return;
