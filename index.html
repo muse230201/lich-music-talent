@@ -186,7 +186,10 @@
           </select>
           <select id="filter-status" onchange="renderSchedule()" class="px-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-indigo-500">
             <option value="">Tất cả trạng thái</option>
-            <option value="Đang học">Đang học</option>
+            <option value="CHECKED">✓ Đã check / điểm danh</option>
+            <option value="UNCHECKED">⏳ Chưa check</option>
+            <option value="OFF_TODAY">Nghỉ hôm nay</option>
+            <option value="Đang học">Đang học (Lịch tuần)</option>
             <option value="Tạm nghỉ">Tạm nghỉ</option>
             <option value="Đã hủy">Đã hủy</option>
           </select>
@@ -1880,6 +1883,13 @@
       return state.attendance[dateStr][classId];
     }
 
+    function isClassCheckedForDate(cl, dateStr = state.workingDate) {
+      const rec = state.attendance[dateStr]?.[cl.id];
+      if (!rec || rec.hasClass === false) return false;
+      const hasPresentStudent = rec.presentStudents && Object.values(rec.presentStudents).some(Boolean);
+      return !!(rec.checked || rec.teacherArrived || rec.timeConfirmed || hasPresentStudent);
+    }
+
     function getEffectiveClassTime(cl, dateStr = state.workingDate) {
       const rec = state.attendance[dateStr]?.[cl.id];
       const start = (rec && rec.overrideStart) ? rec.overrideStart : cl.start;
@@ -1973,13 +1983,27 @@
         if (room && c.room !== room) return false;
         if (teacher && c.teacher !== teacher) return false;
         if (type && c.type !== type) return false;
-        if (status && c.status !== status) return false;
+        if (status) {
+          const checkDate = forSelectedDay ? state.workingDate : getNearestDateForDayName(c.day);
+          const rec = state.attendance[checkDate]?.[c.id];
+          const isOff = rec && rec.hasClass === false;
+          const isChecked = isClassCheckedForDate(c, checkDate);
+          if (status === 'CHECKED' && !isChecked) return false;
+          if (status === 'UNCHECKED' && (isChecked || isOff)) return false;
+          if (status === 'OFF_TODAY' && !isOff) return false;
+          if (['Đang học', 'Tạm nghỉ', 'Đã hủy'].includes(status) && c.status !== status) return false;
+        }
         if (q) {
           const hay = `${c.name} ${c.subject} ${c.teacher} ${c.room} ${(c.students || []).join(' ')}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
       }).sort((a, b) => timeToMin(a.start) - timeToMin(b.start));
+    }
+
+    function getNearestDateForDayName(dayName) {
+      if (getDayNameFromDateStr(state.workingDate) === dayName) return state.workingDate;
+      return state.workingDate;
     }
 
     function renderSchedule() {
@@ -2087,15 +2111,30 @@
 
           const rec = isSameWorkingDay ? state.attendance[state.workingDate]?.[cl.id] : null;
           const isOffToday = rec && rec.hasClass === false;
+          const isCheckedToday = isSameWorkingDay && isClassCheckedForDate(cl, state.workingDate);
           const subTeacher = rec && rec.hasSubstitute && rec.substituteTeacher ? rec.substituteTeacher : null;
           const lateMins = rec ? Number(rec.lateMinutes || 0) : 0;
+
+          let topRightBadges = '';
+          if (isOffToday) {
+            topRightBadges = `<span class="px-1 rounded bg-slate-500 text-white text-[8px] font-bold shrink-0">Nghỉ</span>`;
+          } else {
+            const checkBadge = isCheckedToday
+              ? `<span title="Đã check / điểm danh lớp này" class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-emerald-600 text-white text-[9px] font-extrabold shadow-2xs shrink-0">✓</span>`
+              : '';
+            const lateBadge = lateMins > 0
+              ? `<span class="px-1 rounded bg-rose-600 text-white text-[8px] font-bold shrink-0">-${lateMins}p</span>`
+              : '';
+            if (checkBadge || lateBadge) {
+              topRightBadges = `<div class="flex items-center gap-0.5 shrink-0">${checkBadge}${lateBadge}</div>`;
+            }
+          }
 
           cardsHtml += `
             <div onclick="event.stopPropagation(); openClassDetail('${cl.id}')" style="top:${topPx}px; height:${heightPx}px;" class="absolute left-0.5 right-0.5 rounded-lg border ${isOffToday ? 'bg-slate-100 border-slate-300 opacity-60 line-through' : `${sty.bg} ${sty.border}`} px-1.5 py-1 shadow-2xs hover:shadow-md hover:z-20 transition cursor-pointer overflow-hidden flex flex-col justify-between">
               <div class="flex items-center justify-between gap-1 leading-tight">
                 <span class="text-[9px] font-bold ${isOffToday ? 'text-slate-500' : sty.text} truncate">${eff.start}-${eff.end}${eff.isOverridden ? '*' : ''}</span>
-                ${lateMins > 0 ? `<span class="px-1 rounded bg-rose-600 text-white text-[8px] font-bold shrink-0">-${lateMins}p</span>` : ''}
-                ${isOffToday ? `<span class="px-1 rounded bg-slate-500 text-white text-[8px] font-bold shrink-0">Nghỉ</span>` : ''}
+                ${topRightBadges}
               </div>
               <div class="text-[10px] font-bold text-slate-900 leading-tight truncate" title="${escapeHtml(cl.name)}">${escapeHtml(cl.name)}</div>
               <div class="text-[9px] text-slate-600 leading-tight truncate">
@@ -2139,6 +2178,7 @@
         const presentCount = rec && rec.presentStudents ? Object.values(rec.presentStudents).filter(Boolean).length : 0;
         const totalSt = (cl.students || []).length;
         const hasClassToday = rec ? rec.hasClass !== false : true;
+        const isCheckedToday = isSameWorkingDay(cl.day) && isClassCheckedForDate(cl, state.workingDate);
         const effTeacher = (rec && rec.hasSubstitute && rec.substituteTeacher) ? `${rec.substituteTeacher} (dạy thay)` : cl.teacher;
 
         return `
@@ -2161,7 +2201,11 @@
               <div class="text-[11px] text-slate-500 truncate max-w-[180px]">${escapeHtml((cl.students || []).join(', ')) || 'Chưa gán HV'}</div>
             </td>
             <td class="py-2.5 px-4 whitespace-nowrap">
-              ${hasClassToday ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-[11px]">Có học</span>' : '<span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 font-semibold text-[11px]">Nghỉ hôm nay</span>'}
+              ${!hasClassToday
+                ? '<span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-600 font-semibold text-[11px]">Nghỉ hôm nay</span>'
+                : (isCheckedToday
+                  ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[11px]">✓ Đã check</span>'
+                  : '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-[11px]">Có học</span>')}
               ${rec && Number(rec.lateMinutes) > 0 ? `<div class="text-[10px] text-rose-600 font-bold mt-0.5">Muộn ${rec.lateMinutes}p</div>` : ''}
             </td>
             <td class="py-2.5 px-4 whitespace-nowrap">
@@ -2418,6 +2462,7 @@
       rec.overrideStart = document.getElementById('att-override-start')?.value || cl.start;
       rec.overrideEnd = document.getElementById('att-override-end')?.value || cl.end;
       rec.timeConfirmed = true;
+      rec.checked = rec.hasClass;
 
       const newPresent = {};
       document.querySelectorAll('.st-att-cb').forEach(cb => {
