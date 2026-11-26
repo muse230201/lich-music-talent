@@ -435,8 +435,11 @@
     <section id="view-rooms" class="hidden space-y-4">
       <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-base font-bold text-slate-900">Sơ đồ Phòng học & Quy tắc xếp lớp (<span id="rooms-count-header">10</span>)</h2>
-          <p class="text-xs text-slate-500">Bấm vào từng thẻ phòng để xem thời khóa biểu tuần, hoặc dùng nút <strong>Sửa / Xóa / Thêm phòng</strong> để cập nhật cơ sở vật chất.</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h2 class="text-base font-bold text-slate-900">Sơ đồ Phòng học & Quy tắc xếp lớp (<span id="rooms-count-header">10</span>)</h2>
+            <span id="rooms-total-classes-badge" class="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-bold">Tổng: 0 ca/tuần</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">Số ca hiển thị theo đúng dữ liệu thực tế trên lịch phòng học (tự động về <strong>Chưa có ca học</strong> khi xóa hết ca).</p>
         </div>
         <button onclick="openRoomForm()" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-2xs flex items-center gap-1.5 cursor-pointer">
           <span>+ Thêm phòng học mới</span>
@@ -3201,20 +3204,39 @@
     // -------------------------------------------------------------------------
     // 11. TAB PHÒNG HỌC (THÊM MỚI, SỬA, XÓA & XEM CHI TIẾT PHÒNG)
     // -------------------------------------------------------------------------
+    function getRoomActiveClasses(roomName) {
+      const target = (roomName || '').trim().toLowerCase();
+      return (state.classes || []).filter(c =>
+        (c.room || '').trim().toLowerCase() === target && c.status !== 'Đã hủy'
+      );
+    }
+
     function renderRooms() {
       const grid = document.getElementById('rooms-grid');
       const headerCount = document.getElementById('rooms-count-header');
+      const totalBadge = document.getElementById('rooms-total-classes-badge');
       if (headerCount) headerCount.textContent = state.rooms.length;
+
+      const totalActiveClasses = (state.classes || []).filter(c => c.status !== 'Đã hủy').length;
+      if (totalBadge) {
+        totalBadge.textContent = totalActiveClasses > 0
+          ? `Đang xếp: ${totalActiveClasses} ca/tuần`
+          : 'Chưa có ca học nào trên lịch';
+        totalBadge.className = totalActiveClasses > 0
+          ? 'px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold'
+          : 'px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-xs font-semibold';
+      }
       if (!grid) return;
 
       grid.innerHTML = state.rooms.map(r => {
-        const clsCount = state.classes.filter(c => c.room === r.name && c.status !== 'Đã hủy').length;
+        const roomClasses = getRoomActiveClasses(r.name);
+        const clsCount = roomClasses.length;
         const countBadgeHtml = clsCount > 0
-          ? `<span class="text-xs font-extrabold text-emerald-600">${clsCount} ca/tuần</span>`
-          : `<span class="text-xs font-semibold text-slate-400">Chưa có ca học</span>`;
+          ? `<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-extrabold">${clsCount} ca/tuần</span>`
+          : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 text-[11px] font-semibold">Chưa có ca học</span>`;
 
         return `
-          <div onclick="openRoomDetail('${r.id}')" class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs hover:border-indigo-300 hover:shadow transition cursor-pointer flex flex-col justify-between gap-3">
+          <div onclick="openRoomDetail('${r.id}')" class="bg-white rounded-2xl border ${clsCount > 0 ? 'border-slate-200' : 'border-dashed border-slate-300'} p-4 shadow-2xs hover:border-indigo-300 hover:shadow transition cursor-pointer flex flex-col justify-between gap-3">
             <div>
               <div class="flex items-center justify-between gap-2 mb-1.5">
                 <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[11px] font-bold">${escapeHtml(r.floor || 'Tầng')}</span>
@@ -3227,9 +3249,12 @@
                 <p class="text-slate-500 mt-0.5 line-clamp-2">${escapeHtml(r.rules || '')}</p>
               </div>
             </div>
-            <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100" onclick="event.stopPropagation()">
-              <button type="button" onclick="openRoomForm('${r.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-xs font-semibold">✏️ Sửa</button>
-              <button type="button" onclick="confirmDeleteRoom('${r.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-600 text-xs font-semibold">🗑️ Xóa</button>
+            <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100" onclick="event.stopPropagation()">
+              <button type="button" onclick="openClassForm('${state.selectedDay}', '${escapeHtml(r.name)}', '17:30')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold">+ Xếp ca</button>
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="openRoomForm('${r.id}')" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-xs font-semibold">✏️ Sửa</button>
+                <button type="button" onclick="confirmDeleteRoom('${r.id}')" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-rose-600 text-xs font-semibold">🗑️ Xóa</button>
+              </div>
             </div>
           </div>
         `;
@@ -3239,7 +3264,7 @@
     function openRoomDetail(roomId) {
       const r = state.rooms.find(x => x.id === roomId);
       if (!r) return;
-      const cls = state.classes.filter(c => c.room === r.name && c.status !== 'Đã hủy')
+      const cls = getRoomActiveClasses(r.name)
         .sort((a, b) => DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day) || timeToMin(a.start) - timeToMin(b.start));
 
       openModal(
@@ -3263,6 +3288,7 @@
           </div>
         `,
         `
+          <button onclick="openClassForm('${state.selectedDay}', '${escapeHtml(r.name)}', '17:30')" class="px-3.5 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold">+ Thêm ca vào phòng này</button>
           <button onclick="openRoomForm('${r.id}')" class="px-3.5 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold">✏️ Sửa phòng</button>
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Đóng</button>
         `
