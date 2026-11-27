@@ -1539,6 +1539,12 @@
                   const checked = isSameDay && isClassCheckedForDate(cl, state.workingDate);
                   const effTeacher = (rec && rec.hasSubstitute && rec.substituteTeacher) ? `${rec.substituteTeacher} (Thay)` : cl.teacher;
 
+                  const stList = cl.students || [];
+                  const presentCount = (rec && rec.presentStudents) ? Object.values(rec.presentStudents).filter(Boolean).length : 0;
+                  const studentCountText = (isSameDay && presentCount > 0) ? `${presentCount}/${stList.length} HV` : `${stList.length} HV`;
+                  const isIndividualOrPair = (cl.type === 'Cá nhân' || cl.type === 'Đôi' || (stList.length > 0 && stList.length <= 2 && cl.type !== 'Nhóm'));
+                  const showStudentNames = isIndividualOrPair && stList.length > 0;
+
                   const topPx = ((s - START_MIN) / SLOT_MINS) * SLOT_HEIGHT;
                   const heightPx = Math.max(24, ((e - s) / SLOT_MINS) * SLOT_HEIGHT - 1);
                   const isCompact = heightPx < 48;
@@ -1549,7 +1555,7 @@
                     <div onclick="event.stopPropagation(); openClassDetail('${cl.id}')"
                       style="top: ${topPx}px; height: ${heightPx}px; left: calc(${leftPct}% + 2px); width: calc(${widthPct}% - 4px);"
                       class="absolute z-10 ${isCompact ? 'px-1.5 py-0.5' : 'p-1.5'} rounded-lg border ${hasClass ? `${sty.bg} ${sty.border}` : 'bg-slate-100 border-slate-300 opacity-70'} shadow-2xs hover:shadow-md hover:z-20 transition cursor-pointer flex flex-col justify-between overflow-hidden">
-                      <div>
+                      <div class="min-w-0">
                         <div class="flex items-center justify-between gap-1 leading-tight">
                           <span class="text-[10px] font-semibold text-slate-600 truncate">${eff.start}-${eff.end}</span>
                           <div class="flex items-center gap-0.5 shrink-0">
@@ -1561,8 +1567,18 @@
                         <div class="font-bold text-[11px] text-slate-900 truncate leading-tight ${isCompact ? 'mt-0' : 'mt-0.5'} ${!hasClass ? 'line-through text-slate-500' : ''}">
                           ${escapeHtml(cl.name)}
                         </div>
+                        ${(!isCompact && showStudentNames) ? `
+                          <div class="text-[10px] font-semibold ${sty.text} truncate leading-tight mt-0.5" title="${escapeHtml(stList.join(', '))}">
+                            👤 ${escapeHtml(stList.join(', '))}
+                          </div>
+                        ` : ''}
                       </div>
-                      ${!isCompact ? `<div class="text-[10px] text-slate-600 truncate leading-tight">${escapeHtml(effTeacher)}</div>` : ''}
+                      ${!isCompact ? `
+                        <div class="flex items-center justify-between gap-1 text-[10px] text-slate-600 leading-tight pt-0.5">
+                          <span class="truncate">${escapeHtml(effTeacher)}</span>
+                          <span class="shrink-0 px-1 py-0 rounded bg-white/80 text-slate-700 font-semibold border border-black/5">🎓 ${studentCountText}</span>
+                        </div>
+                      ` : ''}
                     </div>
                   `;
                 }).join('');
