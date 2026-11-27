@@ -3202,7 +3202,10 @@
             <div class="pointer-events-auto bg-white rounded-xl shadow-xl border-l-4 border-amber-500 border border-slate-200 p-2.5 text-xs space-y-1.5">
               <div class="flex items-center justify-between gap-1">
                 <span class="font-bold text-amber-800">🔔 GV chưa tới • ${a.lateText}</span>
-                <span class="text-[10px] font-bold text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-[10px] font-bold text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
+                  <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 inline-flex items-center justify-center font-bold transition cursor-pointer">✕</button>
+                </div>
               </div>
               <div class="font-bold text-slate-900">${escapeHtml(a.cl.name)}</div>
               <div class="text-slate-600">👩‍🏫 <strong>${escapeHtml(a.cl.teacher)}</strong> • 📞 ${escapeHtml(a.phone)}</div>
@@ -3223,7 +3226,10 @@
             <div class="pointer-events-auto bg-white rounded-xl shadow-xl border-l-4 border-rose-500 border border-slate-200 p-2.5 text-xs space-y-1.5">
               <div class="flex items-center justify-between gap-1">
                 <span class="font-bold text-rose-700">🚨 HV chưa đến lớp (${a.missingStudents.length})</span>
-                <span class="text-[10px] font-bold text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span class="text-[10px] font-bold text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
+                  <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 inline-flex items-center justify-center font-bold transition cursor-pointer">✕</button>
+                </div>
               </div>
               <div class="font-bold text-slate-900">${escapeHtml(a.cl.name)}</div>
               <div class="text-[11px] text-slate-600">${stLines}</div>
@@ -3262,6 +3268,12 @@
       saveState();
       renderFloatingAlerts();
       showToast(`Đã hoãn cảnh báo — sẽ nhắc lại sau ${minutes} phút!`, "info");
+    }
+
+    function dismissAlert(key) {
+      state.snoozedAlerts[key] = Date.now() + 24 * 60 * 60 * 1000;
+      saveState();
+      renderFloatingAlerts();
     }
 
     function confirmTimeOkFromAlert(classId) {
