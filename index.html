@@ -1437,76 +1437,148 @@
       const classes = getFilteredClasses(true);
       const isSameDay = getDayNameFromDateStr(state.workingDate) === state.selectedDay;
 
+      const START_MIN = 8 * 60;  // 08:00
+      const END_MIN = 21 * 60 + 30; // 21:30
+      const SLOT_MINS = 30;
+      const SLOT_HEIGHT = 38; // 38px cho mỗi 30 phút -> liền mạch tuyệt đối
       const slots = [];
-      for (let m = 8 * 60; m <= 21 * 60; m += 30) {
-        slots.push(minToTime(m));
+      for (let m = START_MIN; m < END_MIN; m += SLOT_MINS) {
+        slots.push(m);
       }
+      const totalGridHeight = slots.length * SLOT_HEIGHT;
 
-      let html = `<table class="w-full border-collapse table-fixed">
-        <thead class="sticky top-0 z-20 bg-slate-50 border-b border-slate-200">
-          <tr>
-            <th class="w-14 py-2 px-1 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 sticky left-0 bg-slate-50 z-30">GIỜ</th>
-            ${visibleRooms.map(r => `
-              <th class="py-2 px-1.5 text-center border-r border-slate-200 align-top">
-                <div class="font-bold text-xs text-slate-800 truncate">${escapeHtml(r.name)}</div>
-                <div class="text-[10px] text-slate-400 truncate">${escapeHtml(r.subjects || r.floor)}</div>
-              </th>
-            `).join('')}
-          </tr>
-        </thead>
-        <tbody>`;
+      // Tính toán cột phụ nếu trong cùng 1 phòng có 2 ca trùng giờ nhau
+      function layoutRoomEvents(roomClasses) {
+        const items = roomClasses.map(cl => {
+          const eff = isSameDay ? getEffectiveClassTime(cl) : { start: cl.start, end: cl.end };
+          const s = Math.max(START_MIN, timeToMin(eff.start));
+          const e = Math.min(END_MIN, Math.max(s + 15, timeToMin(eff.end)));
+          return { cl, eff, s, e, col: 0, totalCols: 1 };
+        }).sort((a, b) => a.s - b.s || (b.e - b.s) - (a.e - a.s));
 
-      slots.forEach(slotTime => {
-        const sMin = timeToMin(slotTime);
-        html += `<tr class="border-b border-slate-100 h-9 hover:bg-slate-50/40">
-          <td class="px-1 text-center text-[11px] font-semibold text-slate-400 border-r border-slate-200 sticky left-0 bg-white z-10">${slotTime}</td>`;
-
-        visibleRooms.forEach(room => {
-          const startingClasses = classes.filter(c => {
-            if (c.room !== room.name) return false;
-            const eff = isSameDay ? getEffectiveClassTime(c) : { start: c.start, end: c.end };
-            const cm = timeToMin(eff.start);
-            return cm >= sMin && cm < sMin + 30;
-          });
-
-          html += `<td onclick="openClassForm('${state.selectedDay}', '${escapeHtml(room.name)}', '${slotTime}')" class="p-0.5 border-r border-slate-200 align-top cursor-pointer hover:bg-indigo-50/30 relative">`;
-
-          startingClasses.forEach(cl => {
-            const sty = getSubjectStyle(cl.subject);
-            const rec = isSameDay ? state.attendance[state.workingDate]?.[cl.id] : null;
-            const eff = isSameDay ? getEffectiveClassTime(cl) : { start: cl.start, end: cl.end };
-            const hasClass = rec ? rec.hasClass !== false : true;
-            const checked = isSameDay && isClassCheckedForDate(cl, state.workingDate);
-            const effTeacher = (rec && rec.hasSubstitute && rec.substituteTeacher) ? `${rec.substituteTeacher} (Thay)` : cl.teacher;
-            const spanSlots = Math.max(1, Math.round((timeToMin(eff.end) - timeToMin(eff.start)) / 30));
-            const heightPx = spanSlots * 36 - 4;
-
-            html += `
-              <div onclick="event.stopPropagation(); openClassDetail('${cl.id}')" style="min-height:${heightPx}px"
-                class="p-1.5 rounded-lg border ${hasClass ? `${sty.bg} ${sty.border}` : 'bg-slate-100 border-slate-300 opacity-65'} shadow-2xs hover:shadow transition cursor-pointer flex flex-col justify-between mb-0.5">
-                <div>
-                  <div class="flex items-center justify-between gap-1">
-                    <span class="text-[10px] font-semibold text-slate-600">${eff.start}-${eff.end}</span>
-                    <div class="flex items-center gap-1">
-                      ${checked ? `<span title="Đã check / điểm danh" class="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold inline-flex items-center justify-center shadow-2xs">✓</span>` : ''}
-                      ${!hasClass ? `<span class="px-1.5 py-0.2 rounded bg-slate-400 text-white text-[9px] font-bold">Nghỉ</span>` :
-                        (rec && Number(rec.lateMinutes) > 0 ? `<span class="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-bold">-${rec.lateMinutes}p</span>` : '')}
-                    </div>
-                  </div>
-                  <div class="font-bold text-[11px] text-slate-900 truncate mt-0.5 ${!hasClass ? 'line-through text-slate-500' : ''}">${escapeHtml(cl.name)}</div>
-                </div>
-                <div class="text-[10px] text-slate-600 truncate">${escapeHtml(effTeacher)}</div>
-              </div>
-            `;
-          });
-
-          html += `</td>`;
+        // Gom nhóm các ca giao nhau theo thời gian
+        const clusters = [];
+        items.forEach(item => {
+          let placedCluster = null;
+          for (const cluster of clusters) {
+            if (cluster.some(other => item.s < other.e && item.e > other.s)) {
+              placedCluster = cluster;
+              break;
+            }
+          }
+          if (placedCluster) placedCluster.push(item);
+          else clusters.push([item]);
         });
 
-        html += `</tr>`;
-      });
+        clusters.forEach(cluster => {
+          const colsEnd = [];
+          cluster.forEach(item => {
+            let colIdx = colsEnd.findIndex(endTime => endTime <= item.s);
+            if (colIdx === -1) {
+              colIdx = colsEnd.length;
+              colsEnd.push(item.e);
+            } else {
+              colsEnd[colIdx] = item.e;
+            }
+            item.col = colIdx;
+          });
+          const maxCols = colsEnd.length;
+          cluster.forEach(item => { item.totalCols = maxCols; });
+        });
 
-      html += `</tbody></table>`;
+        return items;
+      }
+
+      let html = `
+        <div class="w-full">
+          <!-- Header tên các phòng -->
+          <div class="flex sticky top-0 z-20 bg-slate-50 border-b border-slate-200">
+            <div class="w-14 shrink-0 py-2 px-1 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 sticky left-0 bg-slate-50 z-30">
+              GIỜ
+            </div>
+            <div class="flex-1 grid" style="grid-template-columns: repeat(${visibleRooms.length}, minmax(112px, 1fr));">
+              ${visibleRooms.map(r => `
+                <div class="py-2 px-1.5 text-center border-r border-slate-200 last:border-r-0 overflow-hidden">
+                  <div class="font-bold text-xs text-slate-800 truncate">${escapeHtml(r.name)}</div>
+                  <div class="text-[10px] text-slate-400 truncate">${escapeHtml(r.subjects || r.floor)}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Thân lưới thời gian liền mạch -->
+          <div class="flex relative" style="height: ${totalGridHeight}px;">
+            <!-- Cột mốc giờ bên trái (dóng chuẩn vạch kẻ ngang) -->
+            <div class="w-14 shrink-0 border-r border-slate-200 sticky left-0 bg-white z-10 select-none">
+              ${slots.map(m => `
+                <div style="height: ${SLOT_HEIGHT}px;" class="border-b border-slate-100 relative">
+                  <span class="block text-center text-[11px] font-semibold ${m % 60 === 0 ? 'text-slate-600' : 'text-slate-400'} pt-0.5 leading-none">
+                    ${minToTime(m)}
+                  </span>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Các cột phòng học -->
+            <div class="flex-1 grid" style="grid-template-columns: repeat(${visibleRooms.length}, minmax(112px, 1fr));">
+              ${visibleRooms.map(room => {
+                const roomClasses = classes.filter(c => c.room === room.name);
+                const laidOut = layoutRoomEvents(roomClasses);
+
+                const bgSlotsHtml = slots.map(m => `
+                  <div onclick="openClassForm('${state.selectedDay}', '${escapeHtml(room.name)}', '${minToTime(m)}')"
+                    style="height: ${SLOT_HEIGHT}px;"
+                    class="border-b border-slate-100 hover:bg-indigo-50/35 cursor-pointer transition-colors"
+                    title="Bấm để thêm ca lúc ${minToTime(m)} tại ${escapeHtml(room.name)}"></div>
+                `).join('');
+
+                const eventsHtml = laidOut.map(({ cl, eff, s, e, col, totalCols }) => {
+                  const sty = getSubjectStyle(cl.subject);
+                  const rec = isSameDay ? state.attendance[state.workingDate]?.[cl.id] : null;
+                  const hasClass = rec ? rec.hasClass !== false : true;
+                  const checked = isSameDay && isClassCheckedForDate(cl, state.workingDate);
+                  const effTeacher = (rec && rec.hasSubstitute && rec.substituteTeacher) ? `${rec.substituteTeacher} (Thay)` : cl.teacher;
+
+                  const topPx = ((s - START_MIN) / SLOT_MINS) * SLOT_HEIGHT;
+                  const heightPx = Math.max(24, ((e - s) / SLOT_MINS) * SLOT_HEIGHT - 1);
+                  const isCompact = heightPx < 48;
+                  const widthPct = 100 / totalCols;
+                  const leftPct = col * widthPct;
+
+                  return `
+                    <div onclick="event.stopPropagation(); openClassDetail('${cl.id}')"
+                      style="top: ${topPx}px; height: ${heightPx}px; left: calc(${leftPct}% + 2px); width: calc(${widthPct}% - 4px);"
+                      class="absolute z-10 ${isCompact ? 'px-1.5 py-0.5' : 'p-1.5'} rounded-lg border ${hasClass ? `${sty.bg} ${sty.border}` : 'bg-slate-100 border-slate-300 opacity-70'} shadow-2xs hover:shadow-md hover:z-20 transition cursor-pointer flex flex-col justify-between overflow-hidden">
+                      <div>
+                        <div class="flex items-center justify-between gap-1 leading-tight">
+                          <span class="text-[10px] font-semibold text-slate-600 truncate">${eff.start}-${eff.end}</span>
+                          <div class="flex items-center gap-0.5 shrink-0">
+                            ${checked ? `<span title="Đã check / điểm danh" class="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold inline-flex items-center justify-center shadow-2xs">✓</span>` : ''}
+                            ${!hasClass ? `<span class="px-1 py-0 rounded bg-slate-400 text-white text-[9px] font-bold">Nghỉ</span>` :
+                              (rec && Number(rec.lateMinutes) > 0 ? `<span class="px-1 py-0 rounded bg-rose-600 text-white text-[9px] font-bold">-${rec.lateMinutes}p</span>` : '')}
+                          </div>
+                        </div>
+                        <div class="font-bold text-[11px] text-slate-900 truncate leading-tight ${isCompact ? 'mt-0' : 'mt-0.5'} ${!hasClass ? 'line-through text-slate-500' : ''}">
+                          ${escapeHtml(cl.name)}
+                        </div>
+                      </div>
+                      ${!isCompact ? `<div class="text-[10px] text-slate-600 truncate leading-tight">${escapeHtml(effTeacher)}</div>` : ''}
+                    </div>
+                  `;
+                }).join('');
+
+                return `
+                  <div class="relative border-r border-slate-200 last:border-r-0" style="height: ${totalGridHeight}px;">
+                    ${bgSlotsHtml}
+                    ${eventsHtml}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
       document.getElementById('timetable-grid').innerHTML = html;
     }
 
