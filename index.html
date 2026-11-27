@@ -1807,12 +1807,26 @@
                 </div>
               </div>
               <div class="space-y-2 max-h-52 overflow-y-auto">${studentsHtml}</div>
-              <div class="flex items-center gap-2 pt-1">
-                <select id="quick-add-st-select" class="flex-1 px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white">
-                  <option value="">+ Chọn học viên thêm nhanh vào ca này...</option>
-                  ${studentSelectOpts}
-                </select>
-                <button type="button" onclick="quickAddStudentToClass('${cl.id}')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">Thêm vào lớp</button>
+              <div class="p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-200/80 space-y-2 pt-2">
+                <div class="text-[11px] font-bold text-indigo-950">➕ Thêm học viên vào lớp (Tự động lưu vào danh bạ nếu là học viên mới):</div>
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-1.5">
+                  <div class="sm:col-span-5">
+                    <input type="text" list="quick-add-st-datalist" id="quick-add-st-input" onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddStudentToClass('${cl.id}');}" placeholder="Nhập tên HV mới hoặc chọn có sẵn..." class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-indigo-500" />
+                    <datalist id="quick-add-st-datalist">${studentSelectOpts}</datalist>
+                  </div>
+                  <div class="sm:col-span-3">
+                    <input type="text" id="quick-add-st-phone" onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddStudentToClass('${cl.id}');}" placeholder="SĐT (nếu HV mới)..." class="w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-indigo-500" />
+                  </div>
+                  <div class="sm:col-span-2">
+                    <div class="flex items-center bg-white border border-slate-300 rounded-lg px-2 py-1.5">
+                      <input type="number" step="0.5" min="0" id="quick-add-st-hours" value="12" title="Số giờ khóa học" class="w-full text-xs font-bold text-indigo-700 focus:outline-none" />
+                      <span class="text-[10px] text-slate-400 ml-0.5">giờ</span>
+                    </div>
+                  </div>
+                  <div class="sm:col-span-2">
+                    <button type="button" onclick="quickAddStudentToClass('${cl.id}')" class="w-full h-full px-2.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold whitespace-nowrap shadow-2xs cursor-pointer">+ Thêm</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1850,33 +1864,97 @@
     }
 
     function quickUpdateTeacherPhone(teacherId) {
+      const inp = document.getElementById('quick-gv-phone');
       const t = state.teachers.find(x => x.id === teacherId);
-      if (!t) return;
-      t.phone = (document.getElementById('quick-gv-phone')?.value || '').trim();
+      if (!t || !inp) return;
+      t.phone = inp.value.trim();
       saveState();
-      showToast(`Đã cập nhật SĐT cho ${t.name}`);
+      renderTeachers();
+      renderSchedule();
+      showToast(`Đã lưu SĐT cho ${t.name}!`);
     }
 
-    function quickUpdateStudentPhone(studentId, phoneVal) {
+    function quickUpdateStudentPhone(studentId, newPhone) {
       const s = state.students.find(x => x.id === studentId);
       if (!s) return;
-      s.phone = (phoneVal || '').trim();
+      s.phone = (newPhone || '').trim();
       saveState();
-      showToast(`Đã lưu SĐT của ${s.name}`);
+      renderStudents();
+      showToast(`Đã cập nhật SĐT cho ${s.name}!`);
+    }
+
+    function ensureStudentsInDirectory(studentNames, subject, options = {}) {
+      let addedCount = 0;
+      const defaultHours = options.hours !== undefined && options.hours !== '' ? Number(options.hours) : 12;
+      const defaultPhone = (options.phone || '').trim();
+
+      (studentNames || []).forEach(rawName => {
+        const cleanName = (rawName || '').trim();
+        if (!cleanName) return;
+        let stObj = state.students.find(s => s.name.trim().toLowerCase() === cleanName.toLowerCase());
+        if (!stObj) {
+          // Tạo mã HV tự động không trùng lặp
+          let nextNum = state.students.length + 1;
+          let newId = `HV${String(nextNum).padStart(3, '0')}`;
+          while (state.students.some(s => s.id === newId)) {
+            nextNum++;
+            newId = `HV${String(nextNum).padStart(3, '0')}`;
+          }
+          const courseHours = {};
+          if (subject) courseHours[subject] = Math.max(0, defaultHours);
+          stObj = {
+            id: newId,
+            name: cleanName,
+            phone: defaultPhone,
+            dob: '',
+            courseHours,
+            courseNote: 'Tự động thêm từ lịch học'
+          };
+          state.students.push(stObj);
+          addedCount++;
+        } else {
+          if (defaultPhone && !stObj.phone) stObj.phone = defaultPhone;
+          if (subject) {
+            if (!stObj.courseHours) stObj.courseHours = {};
+            if (stObj.courseHours[subject] === undefined) {
+              stObj.courseHours[subject] = Math.max(0, defaultHours);
+            }
+          }
+        }
+      });
+      return addedCount;
     }
 
     function quickAddStudentToClass(classId) {
-      const sel = document.getElementById('quick-add-st-select');
-      const stName = sel?.value;
-      if (!stName) return;
+      const inp = document.getElementById('quick-add-st-input');
+      const phoneInp = document.getElementById('quick-add-st-phone');
+      const hoursInp = document.getElementById('quick-add-st-hours');
+      const rawVal = (inp?.value || '').trim();
+      if (!rawVal) {
+        showToast("Vui lòng nhập hoặc chọn tên học viên!", "warning");
+        inp?.focus();
+        return;
+      }
+      // Nếu người dùng chọn từ datalist có dạng "Tên HV - SĐT" thì tách lấy phần tên trước dấu " - "
+      const stName = rawVal.includes(' - ') ? rawVal.split(' - ')[0].trim() : rawVal;
+      const phoneVal = (phoneInp?.value || '').trim();
+      const hoursVal = hoursInp?.value !== '' ? Number(hoursInp.value) : 12;
+
       const cl = state.classes.find(c => c.id === classId);
       if (!cl) return;
       if (!cl.students) cl.students = [];
       if (!cl.students.includes(stName)) {
         cl.students.push(stName);
-        saveState();
-        openClassDetail(classId);
-        renderSchedule();
+      }
+      const added = ensureStudentsInDirectory([stName], cl.subject, { phone: phoneVal, hours: hoursVal });
+      saveState();
+      renderStudents();
+      openClassDetail(classId);
+      renderSchedule();
+      if (added > 0) {
+        showToast(`Đã thêm học viên mới "${stName}" (${hoursVal}h ${cl.subject}) vào lớp & danh bạ!`);
+      } else {
+        showToast(`Đã thêm "${stName}" vào lớp!`);
       }
     }
 
@@ -2083,11 +2161,17 @@
         state.classes.push({ id: newId, name, subject, day, start, end, room, teacher, type, status, students, note });
       }
 
+      const newlyAddedStudents = ensureStudentsInDirectory(students, subject);
+
       saveState();
       closeModal();
       state.selectedDay = day;
       renderAll();
-      showToast(editId ? "Đã cập nhật ca học!" : "Đã thêm ca học mới!");
+      if (newlyAddedStudents > 0) {
+        showToast(`${editId ? 'Đã cập nhật ca học' : 'Đã thêm ca học mới'} & tự động thêm ${newlyAddedStudents} học viên mới vào danh bạ!`);
+      } else {
+        showToast(editId ? "Đã cập nhật ca học!" : "Đã thêm ca học mới!");
+      }
     }
 
     function deleteClass(classId) {
