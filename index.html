@@ -651,6 +651,7 @@
       workingDate: new Date().toISOString().slice(0, 10),
       selectedDay: 'Thứ 7',
       scheduleMode: 'grid',
+      userClearedSchedule: false,
       rooms: [],
       teachers: [],
       students: [],
@@ -746,6 +747,7 @@
 
     function isDefaultStubData(parsed) {
       if (!parsed || !Array.isArray(parsed.classes)) return true;
+      if (parsed.userClearedSchedule) return false;
       if (parsed.classes.length === 0) return true;
       const ids = parsed.classes.map(c => c.id).join(',');
       return ids === 'CL001,CL002,CL003';
@@ -759,7 +761,7 @@
       const teachers = Array.isArray(d.teachers) ? d.teachers : [];
       const students = Array.isArray(d.students) ? d.students : [];
       const history = Array.isArray(d.history) ? d.history : [];
-      if (!classes.length && !rooms.length && !teachers.length && !students.length) return -1;
+      if (!classes.length && !rooms.length && !teachers.length && !students.length && !d.userClearedSchedule) return -1;
 
       let score = classes.length * 20 + teachers.length * 3 + students.length * 2 + rooms.length + history.length * 5;
       if (isDefaultStubData(d)) score -= 1000;
@@ -799,7 +801,7 @@
       if (curRaw) {
         try {
           const curParsed = JSON.parse(curRaw);
-          if (curParsed && !isDefaultStubData(curParsed)) return curParsed;
+          if (curParsed && (curParsed.userClearedSchedule || !isDefaultStubData(curParsed))) return curParsed;
         } catch (e) {}
       }
       const allBackups = scanAllStorageBackups();
@@ -810,6 +812,19 @@
         try { return JSON.parse(curRaw); } catch (e) {}
       }
       return allBackups.length ? allBackups[0].data : null;
+    }
+
+    function purgeLegacySchedulesOnClear() {
+      const activeKey = getBranchKey(branchRegistry.activeBranchId);
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || k === activeKey || k === REGISTRY_KEY || k === 'mt_branches_registry_v1') continue;
+        if (k.startsWith('mt_branch_state_') || k.startsWith('mt_branch_data_') || k.includes('music') || k.includes('schedule')) {
+          keysToRemove.push(k);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
     }
 
     function normalizeLegacyClass(c, roomsList = state.rooms, teachersList = state.teachers, studentsList = state.students) {
@@ -847,6 +862,7 @@
       state.workingDate = parsed.workingDate || today;
       state.selectedDay = parsed.selectedDay || todayDayName;
       state.scheduleMode = parsed.scheduleMode || 'grid';
+      state.userClearedSchedule = Boolean(parsed.userClearedSchedule);
       state.rooms = rooms;
       state.teachers = teachers;
       state.students = students;
@@ -868,6 +884,7 @@
             workingDate: today,
             selectedDay: todayDayName,
             scheduleMode: 'grid',
+            userClearedSchedule: false,
             rooms: JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
             teachers: JSON.parse(JSON.stringify(DEFAULT_TEACHERS)),
             students: JSON.parse(JSON.stringify(DEFAULT_STUDENTS)),
@@ -882,6 +899,7 @@
           workingDate: today,
           selectedDay: todayDayName,
           scheduleMode: 'grid',
+          userClearedSchedule: false,
           rooms: JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
           teachers: [],
           students: [],
@@ -1476,6 +1494,10 @@
         const cid = k.split('_')[1];
         if (ids.has(cid)) delete state.attendance[k];
       });
+      if (state.classes.length === 0) {
+        state.userClearedSchedule = true;
+        purgeLegacySchedulesOnClear();
+      }
       selectedClassIds.clear();
       saveState();
       closeModal();
@@ -1503,6 +1525,8 @@
     function executeDeleteAllClasses() {
       state.classes = [];
       state.attendance = {};
+      state.userClearedSchedule = true;
+      purgeLegacySchedulesOnClear();
       selectedClassIds.clear();
       saveState();
       closeModal();
@@ -1938,6 +1962,10 @@
       Object.keys(state.attendance).forEach(k => {
         if (k.endsWith(`_${classId}`)) delete state.attendance[k];
       });
+      if (state.classes.length === 0) {
+        state.userClearedSchedule = true;
+        purgeLegacySchedulesOnClear();
+      }
       selectedClassIds.delete(classId);
       saveState();
       closeModal();
@@ -2088,6 +2116,7 @@
         state.classes.push(newClass);
       }
 
+      if (state.classes.length > 0) state.userClearedSchedule = false;
       state.selectedDay = day;
       document.getElementById('filter-day').value = day;
       saveState();
@@ -3516,6 +3545,7 @@
         state.classes.push(...pendingImportedClasses);
       }
 
+      if (state.classes.length > 0) state.userClearedSchedule = false;
       const count = pendingImportedClasses.length;
       pendingImportedClasses = [];
       selectedClassIds.clear();
@@ -3561,6 +3591,7 @@
         workingDate: new Date().toISOString().slice(0, 10),
         selectedDay: getDayNameFromDate(new Date().toISOString().slice(0, 10)),
         scheduleMode: 'grid',
+        userClearedSchedule: false,
         rooms: JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
         teachers: JSON.parse(JSON.stringify(DEFAULT_TEACHERS)),
         students: JSON.parse(JSON.stringify(DEFAULT_STUDENTS)),
