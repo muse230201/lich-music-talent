@@ -20,6 +20,15 @@
     @media (max-width: 768px) {
       .grid-timeline-wrapper { max-height: calc(100vh - 280px); min-height: 380px; }
     }
+    @keyframes bellRing {
+      0%, 100% { transform: rotate(0deg); }
+      15% { transform: rotate(14deg); }
+      30% { transform: rotate(-12deg); }
+      45% { transform: rotate(10deg); }
+      60% { transform: rotate(-8deg); }
+      75% { transform: rotate(4deg); }
+    }
+    .bell-ringing { display: inline-block; animation: bellRing 1.8s ease-in-out infinite; transform-origin: top center; }
   </style>
 </head>
 <body class="antialiased text-[13px] selection:bg-indigo-100 selection:text-indigo-800">
@@ -78,13 +87,33 @@
           <span class="text-emerald-300">|</span>
           <span>🌙 Muộn nhất: <strong id="header-latest-time" class="text-rose-700">--:--</strong></span>
         </div>
-        <div class="hidden md:flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700" title="Đồng hồ giám sát giờ vào lớp">
+        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700" title="Đồng hồ hệ thống">
           <span>🕒</span>
           <span id="live-clock-text">--:--</span>
-          <button onclick="openAlertCenterModal()" id="alert-bell-btn" class="ml-1 px-1.5 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition flex items-center gap-1 cursor-pointer">
-            <span>🔔</span>
-            <span id="alert-bell-count">0</span>
+        </div>
+        <div class="relative">
+          <button onclick="toggleAlertPopover(event)" id="alert-bell-btn"
+            class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            title="Bấm để xem danh sách thông báo giờ vào lớp">
+            <span id="alert-bell-icon" class="text-sm">🔔</span>
+            <span id="alert-bell-label">Thông báo</span>
+            <span id="alert-bell-count" class="px-1.5 py-0.2 rounded-full bg-slate-300 text-slate-700 text-[11px] font-extrabold">0</span>
           </button>
+          <!-- Dropdown / Popover danh sách thông báo -->
+          <div id="alert-popover-panel" onclick="event.stopPropagation()"
+            class="hidden fixed sm:absolute right-2 sm:right-0 left-2 sm:left-auto mt-2 sm:w-[410px] bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+            <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🔔</span>
+                <div>
+                  <div class="font-bold text-slate-900 text-xs sm:text-sm">Danh sách thông báo lớp học</div>
+                  <div class="text-[11px] text-slate-500">Tự động cập nhật theo giờ vào ca hôm nay</div>
+                </div>
+              </div>
+              <button onclick="closeAlertPopover()" class="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold cursor-pointer">✕</button>
+            </div>
+            <div id="alert-popover-list" class="max-h-[70vh] overflow-y-auto divide-y divide-slate-100 p-2.5 space-y-2"></div>
+          </div>
         </div>
         <button onclick="openClassForm()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-2xs transition flex items-center gap-1">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -117,9 +146,6 @@
 
   <!-- ==================== TOAST NOTIFICATION ==================== -->
   <div id="toast-container" class="fixed bottom-3 right-3 z-50 flex flex-col gap-1.5 pointer-events-none"></div>
-
-  <!-- ==================== FLOATING ATTENDANCE ALERT STACK ==================== -->
-  <div id="floating-alerts-container" class="fixed bottom-3 left-3 z-50 flex flex-col gap-2 max-w-[330px] w-[calc(100vw-1.5rem)] pointer-events-none"></div>
 
   <!-- ==================== MAIN CONTENT ==================== -->
   <main class="max-w-[1600px] mx-auto px-3 sm:px-5 py-3.5">
@@ -1507,9 +1533,9 @@
           </div>
 
           <!-- Thân lưới thời gian liền mạch -->
-          <div class="flex relative" style="height: ${totalGridHeight}px;">
+          <div id="timeline-grid-body" class="flex relative" style="height: ${totalGridHeight}px;">
             <!-- Cột mốc giờ bên trái (dóng chuẩn vạch kẻ ngang) -->
-            <div class="w-14 shrink-0 border-r border-slate-200 sticky left-0 bg-white z-10 select-none">
+            <div class="w-14 shrink-0 border-r border-slate-200 sticky left-0 bg-white z-20 select-none">
               ${slots.map(m => `
                 <div style="height: ${SLOT_HEIGHT}px;" class="border-b border-slate-100 relative">
                   <span class="block text-center text-[11px] font-semibold ${m % 60 === 0 ? 'text-slate-600' : 'text-slate-400'} pt-0.5 leading-none">
@@ -1517,10 +1543,20 @@
                   </span>
                 </div>
               `).join('')}
+              <!-- Nhãn giờ hiện tại trên trục dọc -->
+              <div id="live-time-axis-badge" class="hidden absolute left-0.5 right-0.5 -translate-y-1/2 z-30 pointer-events-none flex items-center justify-center">
+                <span id="live-time-axis-text" class="px-1 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold shadow-xs leading-none tracking-tight">--:--</span>
+              </div>
             </div>
 
             <!-- Các cột phòng học -->
-            <div class="flex-1 grid" style="grid-template-columns: repeat(${visibleRooms.length}, minmax(112px, 1fr));">
+            <div class="flex-1 grid relative" style="grid-template-columns: repeat(${visibleRooms.length}, minmax(112px, 1fr));">
+              <!-- Vùng đổ màu nền bảng theo giờ thực tế đã trôi qua (z-[2] nằm dưới các khối lớp z-10) -->
+              <div id="live-time-elapsed-shade" class="hidden absolute left-0 right-0 top-0 bg-slate-200/40 pointer-events-none z-[2] transition-all duration-500"></div>
+              <!-- Đường gạch ngang chỉ mốc giờ hiện tại chạy suốt chiều ngang các phòng (nằm dưới khối lớp) -->
+              <div id="live-time-horizontal-line" class="hidden absolute left-0 right-0 border-t-2 border-rose-500 pointer-events-none z-[3] transition-all duration-500">
+                <span class="w-2 h-2 rounded-full bg-rose-600 block -mt-[5px] -ml-1 shadow-2xs"></span>
+              </div>
               ${visibleRooms.map(room => {
                 const roomClasses = classes.filter(c => c.room === room.name);
                 const laidOut = layoutRoomEvents(roomClasses);
@@ -1596,6 +1632,45 @@
       `;
 
       document.getElementById('timetable-grid').innerHTML = html;
+      updateLiveTimelineIndicator();
+    }
+
+    function updateLiveTimelineIndicator() {
+      const shadeEl = document.getElementById('live-time-elapsed-shade');
+      const lineEl = document.getElementById('live-time-horizontal-line');
+      const badgeEl = document.getElementById('live-time-axis-badge');
+      const badgeTextEl = document.getElementById('live-time-axis-text');
+      if (!shadeEl || !lineEl || !badgeEl || !badgeTextEl) return;
+
+      const now = new Date();
+      const todayDayName = getDayNameFromDateStr(now.toISOString().slice(0, 10));
+      const isViewingToday = state.selectedDay === todayDayName;
+
+      const START_MIN = 8 * 60;
+      const END_MIN = 21 * 60 + 30;
+      const SLOT_MINS = 30;
+      const SLOT_HEIGHT = 38;
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+
+      if (!isViewingToday || nowMin < START_MIN || nowMin > END_MIN) {
+        shadeEl.classList.add('hidden');
+        lineEl.classList.add('hidden');
+        badgeEl.classList.add('hidden');
+        return;
+      }
+
+      const topPx = ((nowMin - START_MIN) / SLOT_MINS) * SLOT_HEIGHT;
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      shadeEl.style.height = `${topPx}px`;
+      shadeEl.classList.remove('hidden');
+
+      lineEl.style.top = `${topPx}px`;
+      lineEl.classList.remove('hidden');
+
+      badgeTextEl.textContent = timeStr;
+      badgeEl.style.top = `${topPx}px`;
+      badgeEl.classList.remove('hidden');
     }
 
     function renderScheduleList() {
@@ -1922,13 +1997,171 @@
         `
           <div class="w-full flex flex-wrap items-center justify-between gap-2">
             <button type="button" onclick="deleteClass('${cl.id}')" class="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold">🗑️ Xóa ca</button>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="openClassRosterSheet('${cl.id}')" class="px-3.5 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold">📋 Chi tiết lớp học</button>
               <button type="button" onclick="openClassForm('${cl.day}', '${escapeHtml(cl.room)}', '${cl.start}', '${cl.id}')" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold">✏️ Sửa lịch / phòng</button>
               <button type="button" onclick="saveClassAttendanceFromModal('${cl.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs">💾 Lưu điểm danh</button>
             </div>
           </div>
         `
       );
+    }
+
+    function openClassRosterSheet(classId) {
+      const cl = state.classes.find(c => c.id === classId);
+      if (!cl) return;
+      const rec = getAttendanceRecord(state.workingDate, cl.id);
+      if (!rec.dismissal) rec.dismissal = {};
+      const eff = getEffectiveClassTime(cl, state.workingDate);
+      const effectiveTeacherName = (rec.hasSubstitute && rec.substituteTeacher) ? rec.substituteTeacher : cl.teacher;
+      const teacherObj = state.teachers.find(t => t.name === effectiveTeacherName) || state.teachers.find(t => t.name === cl.teacher);
+      const sty = getSubjectStyle(cl.subject);
+
+      const students = cl.students || [];
+      const rowsHtml = students.length === 0
+        ? `<tr><td colspan="4" class="py-8 text-center text-slate-400 text-xs">Lớp này chưa có học viên trong danh sách.</td></tr>`
+        : students.map((stName, idx) => {
+            const stObj = state.students.find(s => s.name === stName);
+            const arrived = !!(rec.presentStudents && rec.presentStudents[stName]);
+            const dis = rec.dismissal[stName] || { selfLeave: false, parentPickup: false, parentNote: '' };
+            return `
+              <tr class="roster-row hover:bg-slate-50/80 text-xs" data-student="${escapeHtml(stName)}">
+                <td class="py-2.5 px-3 text-center font-semibold text-slate-500">${idx + 1}</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-bold text-slate-900">${escapeHtml(stName)}</div>
+                  <div class="text-[11px] text-slate-500">📞 ${escapeHtml(stObj?.phone || 'Chưa có SĐT')}</div>
+                </td>
+                <td class="py-2.5 px-3">
+                  <label class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border ${arrived ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-white border-slate-200 text-slate-600'} cursor-pointer font-semibold">
+                    <input type="checkbox" class="roster-arrived-cb w-4 h-4 rounded accent-emerald-600" ${arrived ? 'checked' : ''}
+                      onchange="this.nextElementSibling.textContent = this.checked ? '✓ Có đến lớp' : 'Chưa đến'; this.parentElement.className = this.checked ? 'inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border bg-emerald-50 border-emerald-300 text-emerald-800 cursor-pointer font-semibold' : 'inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border bg-white border-slate-200 text-slate-600 cursor-pointer font-semibold';" />
+                    <span>${arrived ? '✓ Có đến lớp' : 'Chưa đến'}</span>
+                  </label>
+                </td>
+                <td class="py-2.5 px-3">
+                  <div class="flex flex-wrap items-center gap-3">
+                    <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                      <input type="checkbox" class="roster-self-cb w-4 h-4 rounded accent-indigo-600" ${dis.selfLeave ? 'checked' : ''}
+                        onchange="if(this.checked){ const r=this.closest('tr'); r.querySelector('.roster-parent-cb').checked=false; }" />
+                      <span>Tự về</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1 text-xs font-semibold text-slate-800 cursor-pointer">
+                      <input type="checkbox" class="roster-parent-cb w-4 h-4 rounded accent-amber-600" ${dis.parentPickup ? 'checked' : ''}
+                        onchange="if(this.checked){ const r=this.closest('tr'); r.querySelector('.roster-self-cb').checked=false; }" />
+                      <span>Phụ huynh</span>
+                      <input type="text" class="roster-parent-note w-24 px-1.5 py-0.5 text-xs font-semibold text-indigo-700 border-b border-dashed border-slate-400 focus:border-indigo-600 focus:outline-none bg-transparent text-center"
+                        value="${escapeHtml(dis.parentNote || '')}" placeholder="..."
+                        oninput="if(this.value.trim()){ const r=this.closest('tr'); r.querySelector('.roster-parent-cb').checked=true; r.querySelector('.roster-self-cb').checked=false; }" />
+                      <span>đón</span>
+                    </label>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+      openModal(
+        `<div class="flex items-center gap-2 flex-wrap">
+          <span class="px-2 py-0.5 rounded-lg text-xs font-bold ${sty.badge}">${escapeHtml(cl.subject)}</span>
+          <span>Chi tiết lớp học: ${escapeHtml(cl.name)}</span>
+        </div>`,
+        `
+          <div class="space-y-3">
+            <!-- Thông tin ca & Giáo viên -->
+            <div class="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div>
+                <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-700">Giáo viên đứng lớp</div>
+                <div class="text-sm font-extrabold text-slate-900 mt-0.5">
+                  👩‍🏫 ${escapeHtml(effectiveTeacherName || 'Chưa phân công')}${rec.hasSubstitute && rec.substituteTeacher ? ' <span class="text-amber-700 text-xs font-bold">(Dạy thay)</span>' : ''}
+                  <span class="text-slate-400 mx-1">-</span>
+                  <span class="text-indigo-700 font-bold">📞 ${escapeHtml(teacherObj?.phone || 'Chưa có SĐT')}</span>
+                </div>
+              </div>
+              <div class="text-right text-[11px] text-slate-600">
+                <div class="font-bold text-slate-800">📅 ${formatDateVN(state.workingDate)} (${cl.day})</div>
+                <div>🕒 ${eff.start} – ${eff.end} • 🚪 ${escapeHtml(cl.room)}</div>
+              </div>
+            </div>
+
+            <!-- Bảng danh sách học viên -->
+            <div class="rounded-xl border border-slate-200 overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                      <th class="py-2.5 px-3 text-center w-10">STT</th>
+                      <th class="py-2.5 px-3">Học viên (Tên - SĐT)</th>
+                      <th class="py-2.5 px-3">Đến lớp</th>
+                      <th class="py-2.5 px-3">Ra về</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">${rowsHtml}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `,
+        `
+          <div class="w-full flex flex-wrap items-center justify-between gap-2">
+            <button type="button" onclick="openClassDetail('${cl.id}')" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold">← Quay lại điểm danh</button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="saveClassRosterSheet('${cl.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs">💾 Lưu danh sách lớp</button>
+            </div>
+          </div>
+        `
+      );
+    }
+
+    function saveClassRosterSheet(classId) {
+      const cl = state.classes.find(c => c.id === classId);
+      if (!cl) return;
+      const rec = getAttendanceRecord(state.workingDate, cl.id);
+      if (!rec.dismissal) rec.dismissal = {};
+      const prevPresent = { ...(rec.presentStudents || {}) };
+      const prevHasClass = rec.hasClass !== false;
+      const newPresent = {};
+
+      document.querySelectorAll('.roster-row').forEach(row => {
+        const stName = row.dataset.student;
+        const arrived = row.querySelector('.roster-arrived-cb')?.checked || false;
+        const selfLeave = row.querySelector('.roster-self-cb')?.checked || false;
+        const parentPickup = row.querySelector('.roster-parent-cb')?.checked || false;
+        const parentNote = (row.querySelector('.roster-parent-note')?.value || '').trim();
+
+        newPresent[stName] = arrived;
+        rec.dismissal[stName] = { selfLeave, parentPickup, parentNote };
+      });
+
+      rec.presentStudents = newPresent;
+      if (Object.values(newPresent).some(Boolean)) {
+        rec.checked = true;
+      }
+
+      // Đồng bộ tự động trừ / hoàn số giờ học còn lại trong khóa của từng học viên
+      const eff = getEffectiveClassTime(cl, state.workingDate);
+      const durHrs = getDurationHours(eff.start, eff.end);
+      Object.keys({ ...prevPresent, ...newPresent }).forEach(stName => {
+        const wasPresent = prevHasClass && !!prevPresent[stName];
+        const isPresent = (rec.hasClass !== false) && !!newPresent[stName];
+        if (wasPresent !== isPresent) {
+          const stObj = state.students.find(s => s.name === stName);
+          if (stObj) {
+            if (!stObj.courseHours) stObj.courseHours = {};
+            const currentHrs = Number(stObj.courseHours[cl.subject] || 0);
+            if (isPresent) {
+              stObj.courseHours[cl.subject] = Math.max(0, Math.round((currentHrs - durHrs) * 100) / 100);
+            } else {
+              stObj.courseHours[cl.subject] = Math.round((currentHrs + durHrs) * 100) / 100;
+            }
+          }
+        }
+      });
+
+      saveState();
+      renderAll();
+      renderFloatingAlerts();
+      openClassDetail(classId);
+      showToast("Đã lưu thông tin đến lớp & ra về của học viên!");
     }
 
     function addLateMinutes(delta) {
@@ -3121,6 +3354,7 @@
         if (clockEl) {
           clockEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         }
+        updateLiveTimelineIndicator();
         renderFloatingAlerts();
       };
       tick();
@@ -3190,53 +3424,82 @@
 
     function renderFloatingAlerts() {
       const alerts = getActiveAlerts();
+      const bellBtn = document.getElementById('alert-bell-btn');
+      const bellIcon = document.getElementById('alert-bell-icon');
+      const bellLabel = document.getElementById('alert-bell-label');
       const bellCount = document.getElementById('alert-bell-count');
+
       if (bellCount) bellCount.textContent = alerts.length;
 
-      const container = document.getElementById('floating-alerts-container');
-      if (!container) return;
+      if (bellBtn && bellIcon && bellLabel && bellCount) {
+        if (alerts.length > 0) {
+          bellBtn.className = 'px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 border border-rose-500 text-white text-xs font-extrabold transition flex items-center gap-1.5 cursor-pointer shadow-md ring-2 ring-rose-300/70';
+          bellIcon.className = 'text-sm bell-ringing';
+          bellLabel.textContent = 'Cảnh báo';
+          bellCount.className = 'px-1.5 py-0.2 rounded-full bg-white text-rose-700 text-[11px] font-extrabold shadow-2xs';
+        } else {
+          bellBtn.className = 'px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs';
+          bellIcon.className = 'text-sm';
+          bellLabel.textContent = 'Thông báo';
+          bellCount.className = 'px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold';
+        }
+      }
 
-      container.innerHTML = alerts.slice(0, 3).map(a => {
+      const listBox = document.getElementById('alert-popover-list');
+      if (!listBox) return;
+
+      if (alerts.length === 0) {
+        listBox.innerHTML = `
+          <div class="py-8 px-4 text-center space-y-1.5">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center text-lg font-bold">✓</div>
+            <div class="font-bold text-slate-800 text-xs sm:text-sm">Không có thông báo mới</div>
+            <p class="text-[11px] text-slate-500">Tất cả các ca đang diễn ra đều đã được xác nhận hoặc chưa tới giờ nhắc.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listBox.innerHTML = alerts.map(a => {
         if (a.kind === 'teacher') {
           return `
-            <div class="pointer-events-auto bg-white rounded-xl shadow-xl border-l-4 border-amber-500 border border-slate-200 p-2.5 text-xs space-y-1.5">
+            <div class="bg-amber-50/50 rounded-xl border border-amber-200 border-l-4 border-l-amber-500 p-2.5 text-xs space-y-1.5">
               <div class="flex items-center justify-between gap-1">
                 <span class="font-bold text-amber-800">🔔 GV chưa tới • ${a.lateText}</span>
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <span class="text-[10px] font-bold text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
-                  <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 inline-flex items-center justify-center font-bold transition cursor-pointer">✕</button>
+                  <span class="text-[10px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
+                  <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="w-5 h-5 rounded-md hover:bg-amber-200/70 text-slate-500 hover:text-slate-800 inline-flex items-center justify-center font-bold transition cursor-pointer">✕</button>
                 </div>
               </div>
               <div class="font-bold text-slate-900">${escapeHtml(a.cl.name)}</div>
               <div class="text-slate-600">👩‍🏫 <strong>${escapeHtml(a.cl.teacher)}</strong> • 📞 ${escapeHtml(a.phone)}</div>
               <div class="flex flex-wrap items-center gap-1 pt-1">
-                ${!a.timeConfirmed ? `<button onclick="confirmTimeOkFromAlert('${a.classId}')" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold">✓ Đúng giờ này</button>` : ''}
-                <button onclick="openClassDetail('${a.classId}')" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold">✏️ Đổi giờ</button>
-                <button onclick="confirmTeacherArrivedFromAlert('${a.classId}')" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold">✓ GV đã tới</button>
-                <button onclick="snoozeAlert('${a.key}', 5)" class="px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[10px] font-bold">⏰ Sau 5p nhắc lại</button>
+                ${!a.timeConfirmed ? `<button onclick="confirmTimeOkFromAlert('${a.classId}')" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold cursor-pointer">✓ Đúng giờ này</button>` : ''}
+                <button onclick="closeAlertPopover(); openClassDetail('${a.classId}')" class="px-2 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold cursor-pointer">✏️ Đổi giờ</button>
+                <button onclick="confirmTeacherArrivedFromAlert('${a.classId}')" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold cursor-pointer">✓ GV đã tới</button>
+                <button onclick="snoozeAlert('${a.key}', 5)" class="px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[10px] font-bold cursor-pointer">⏰ Sau 5p nhắc lại</button>
               </div>
             </div>
           `;
         } else {
-          const stLines = a.missingStudents.slice(0, 3).map(name => {
+          const stLines = a.missingStudents.slice(0, 4).map(name => {
             const stObj = state.students.find(s => s.name === name);
             return `${escapeHtml(name)} (${escapeHtml(stObj?.phone || 'Chưa có SĐT')})`;
           }).join(', ');
           return `
-            <div class="pointer-events-auto bg-white rounded-xl shadow-xl border-l-4 border-rose-500 border border-slate-200 p-2.5 text-xs space-y-1.5">
+            <div class="bg-rose-50/50 rounded-xl border border-rose-200 border-l-4 border-l-rose-500 p-2.5 text-xs space-y-1.5">
               <div class="flex items-center justify-between gap-1">
                 <span class="font-bold text-rose-700">🚨 HV chưa đến lớp (${a.missingStudents.length})</span>
                 <div class="flex items-center gap-1.5 shrink-0">
-                  <span class="text-[10px] font-bold text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
-                  <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="w-5 h-5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 inline-flex items-center justify-center font-bold transition cursor-pointer">✕</button>
+                  <span class="text-[10px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200">${a.eff.start} • ${escapeHtml(a.cl.room)}</span>
+                  <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="w-5 h-5 rounded-md hover:bg-rose-200/70 text-slate-500 hover:text-slate-800 inline-flex items-center justify-center font-bold transition cursor-pointer">✕</button>
                 </div>
               </div>
               <div class="font-bold text-slate-900">${escapeHtml(a.cl.name)}</div>
               <div class="text-[11px] text-slate-600">${stLines}</div>
               <div class="flex flex-wrap items-center gap-1 pt-1">
-                <button onclick="confirmAllStudentsFromAlert('${a.classId}')" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold">✓ Đã đến đủ</button>
-                <button onclick="openClassDetail('${a.classId}')" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[10px] font-bold">Điểm danh</button>
-                <button onclick="snoozeAlert('${a.key}', 5)" class="px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[10px] font-bold">⏰ Sau 5p nhắc lại</button>
+                <button onclick="confirmAllStudentsFromAlert('${a.classId}')" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold cursor-pointer">✓ Đã đến đủ</button>
+                <button onclick="closeAlertPopover(); openClassDetail('${a.classId}')" class="px-2 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[10px] font-bold cursor-pointer">Điểm danh</button>
+                <button onclick="snoozeAlert('${a.key}', 5)" class="px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[10px] font-bold cursor-pointer">⏰ Sau 5p nhắc lại</button>
               </div>
             </div>
           `;
@@ -3244,33 +3507,35 @@
       }).join('');
     }
 
-    function openAlertCenterModal() {
-      const alerts = getActiveAlerts();
-      openModal(
-        `🔔 Trung tâm Cảnh báo Giờ vào lớp (${alerts.length})`,
-        alerts.length === 0
-          ? `<p class="text-xs text-slate-500 py-4 text-center">Hiện tại không có ca học nào sắp vào lớp hoặc trễ giờ chưa điểm danh.</p>`
-          : `<div class="space-y-2">${alerts.map(a => `
-              <div class="p-2.5 rounded-xl border border-slate-200 flex items-center justify-between gap-2 text-xs">
-                <div>
-                  <div class="font-bold text-slate-900">${a.kind === 'teacher' ? '👩‍🏫 GV chưa tới' : '🎓 HV chưa đến'}: ${escapeHtml(a.cl.name)}</div>
-                  <div class="text-slate-500">${a.eff.start} • ${escapeHtml(a.cl.room)} • ${escapeHtml(a.cl.teacher)}</div>
-                </div>
-                <button onclick="openClassDetail('${a.classId}')" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold">Mở lớp</button>
-              </div>
-            `).join('')}</div>`,
-        `<button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600">Đóng</button>`
-      );
+    function toggleAlertPopover(e) {
+      if (e) e.stopPropagation();
+      const panel = document.getElementById('alert-popover-panel');
+      if (!panel) return;
+      renderFloatingAlerts();
+      panel.classList.toggle('hidden');
     }
 
-    function snoozeAlert(key, minutes = 5) {
-      state.snoozedAlerts[key] = Date.now() + minutes * 60 * 1000;
+    function closeAlertPopover() {
+      document.getElementById('alert-popover-panel')?.classList.add('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('alert-popover-panel');
+      const btn = document.getElementById('alert-bell-btn');
+      if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        panel.classList.add('hidden');
+      }
+    });
+
+    function snoozeAlert(key, mins = 5) {
+      state.snoozedAlerts[key] = Date.now() + mins * 60 * 1000;
       saveState();
       renderFloatingAlerts();
-      showToast(`Đã hoãn cảnh báo — sẽ nhắc lại sau ${minutes} phút!`, "info");
+      showToast(`Sẽ nhắc lại thông báo này sau ${mins} phút!`, "info");
     }
 
     function dismissAlert(key) {
+      // Đóng thông báo đến hết ngày hôm nay
       state.snoozedAlerts[key] = Date.now() + 24 * 60 * 60 * 1000;
       saveState();
       renderFloatingAlerts();
@@ -3280,41 +3545,41 @@
       const rec = getAttendanceRecord(state.workingDate, classId);
       rec.timeConfirmed = true;
       saveState();
+      renderAll();
       renderFloatingAlerts();
       showToast("Đã xác nhận lớp học đúng giờ!");
     }
 
     function confirmTeacherArrivedFromAlert(classId) {
-      const cl = state.classes.find(c => c.id === classId);
-      if (!cl) return;
       const rec = getAttendanceRecord(state.workingDate, classId);
       rec.teacherArrived = true;
-      const now = new Date();
-      const diff = (now.getHours() * 60 + now.getMinutes()) - timeToMin(getEffectiveClassTime(cl).start);
-      if (diff > 0 && !rec.lateMinutes) {
-        rec.lateMinutes = diff;
-      }
+      rec.timeConfirmed = true;
+      rec.checked = true;
       saveState();
       renderAll();
       renderFloatingAlerts();
-      showToast(`Đã xác nhận ${cl.teacher} có mặt!`);
+      showToast("Đã xác nhận giáo viên có mặt tại lớp!");
     }
 
     function confirmAllStudentsFromAlert(classId) {
       const cl = state.classes.find(c => c.id === classId);
       if (!cl) return;
-      const rec = getAttendanceRecord(state.workingDate, classId);
-      const eff = getEffectiveClassTime(cl);
+      const rec = getAttendanceRecord(state.workingDate, cl.id);
+      const eff = getEffectiveClassTime(cl, state.workingDate);
       const durHrs = getDurationHours(eff.start, eff.end);
+
       (cl.students || []).forEach(stName => {
         if (!rec.presentStudents[stName]) {
           rec.presentStudents[stName] = true;
           const stObj = state.students.find(s => s.name === stName);
-          if (stObj && stObj.courseHours && stObj.courseHours[cl.subject] !== undefined) {
-            stObj.courseHours[cl.subject] = Math.max(0, Math.round((stObj.courseHours[cl.subject] - durHrs) * 100) / 100);
+          if (stObj) {
+            if (!stObj.courseHours) stObj.courseHours = {};
+            const cur = Number(stObj.courseHours[cl.subject] || 0);
+            stObj.courseHours[cl.subject] = Math.max(0, Math.round((cur - durHrs) * 100) / 100);
           }
         }
       });
+      rec.checked = true;
       saveState();
       renderAll();
       renderFloatingAlerts();
