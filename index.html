@@ -568,8 +568,10 @@
   <!-- ==================== APPLICATION LOGIC ==================== -->
   <script>
     // -------------------------------------------------------------------------
-    // 1. MÀU SẮC BỘ MÔN & DỮ LIỆU MẶC ĐỊNH
+    // 1. CẤU HÌNH MÀU SẮC BỘ MÔN & HẰNG SỐ
     // -------------------------------------------------------------------------
+    const DAYS_ORDER = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+
     const SUBJECT_COLORS = {
       'Piano': { bg: 'bg-indigo-50', border: 'border-indigo-300', text: 'text-indigo-900', badge: 'bg-indigo-600 text-white' },
       'Thanh nhạc': { bg: 'bg-rose-50', border: 'border-rose-300', text: 'text-rose-900', badge: 'bg-rose-600 text-white' },
@@ -591,6 +593,9 @@
       return key ? SUBJECT_COLORS[key] : { bg: 'bg-violet-50', border: 'border-violet-300', text: 'text-violet-900', badge: 'bg-violet-600 text-white' };
     }
 
+    // -------------------------------------------------------------------------
+    // 2. DỮ LIỆU MẶC ĐỊNH
+    // -------------------------------------------------------------------------
     const DEFAULT_ROOMS = [
       { id: 'R101', floor: 'Tầng 1', name: 'Văn phòng (Tầng 1)', equipment: 'Khu vực văn phòng tầng 1', subjects: 'Thanh Nhạc, Nhạc Cụ Dân tộc', rule: 'Thanh Nhạc, Nhạc Cụ Dân tộc (Đàn tranh...).' },
       { id: 'R201', floor: 'Tầng 2', name: 'Phòng 201 (Tầng 2)', equipment: 'Phòng học tầng 2', subjects: 'Thanh Nhạc, Violin', rule: 'Thanh Nhạc, Violin (Nếu 401 đã có lớp).' },
@@ -605,40 +610,34 @@
     ];
 
     const DEFAULT_TEACHERS = [
-      { id: 'GV001', name: 'Cô Hiền', phone: '0912401101', subject: 'Piano', school: 'Học viện Âm nhạc Quốc gia VN' },
-      { id: 'GV002', name: 'Cô Nguyên', phone: '0912401102', subject: 'Piano', school: 'ĐH Sư phạm Nghệ thuật TW' },
-      { id: 'GV003', name: 'Thầy An', phone: '0912401103', subject: 'Piano', school: 'Học viện Âm nhạc Quốc gia VN' },
-      { id: 'GV004', name: 'Thầy Vinh', phone: '0912401104', subject: 'Piano', school: 'ĐH Văn hóa Nghệ thuật Quân đội' },
-      { id: 'GV005', name: 'Cô Hà Thanh Trang', phone: '0912401105', subject: 'Thanh nhạc', school: 'Học viện Âm nhạc Quốc gia VN' },
-      { id: 'GV006', name: 'Thầy Hải', phone: '0912401106', subject: 'Guitar', school: 'ĐH Sư phạm Nghệ thuật TW' },
-      { id: 'GV007', name: 'Thầy Thái Sơn', phone: '0912401107', subject: 'Violin', school: 'Học viện Âm nhạc Quốc gia VN' },
-      { id: 'GV008', name: 'Cô Ngọc Anh', phone: '0912401108', subject: 'Múa, Kpop', school: 'Học viện Múa Việt Nam' }
+      { id: 'GV001', name: 'Thầy An', phone: '0912401101', subject: 'Piano', school: 'Học viện Âm nhạc Quốc gia VN' },
+      { id: 'GV002', name: 'Thầy Vinh', phone: '0912401102', subject: 'Piano', school: 'ĐH Sư phạm Nghệ thuật TW' },
+      { id: 'GV003', name: 'Cô Hiền', phone: '0912401103', subject: 'Piano', school: 'Học viện Âm nhạc Quốc gia VN' },
+      { id: 'GV004', name: 'Cô Hà Thanh Trang', phone: '0912401104', subject: 'Thanh nhạc', school: 'ĐH Văn hóa Nghệ thuật Quân đội' },
+      { id: 'GV005', name: 'Thầy Hải', phone: '0912401105', subject: 'Guitar', school: 'Học viện Âm nhạc Quốc gia VN' },
+      { id: 'GV006', name: 'Cô Quỳnh Chi', phone: '0944103602', subject: 'Múa', school: 'Học viện Múa Việt Nam' }
     ];
 
     const DEFAULT_STUDENTS = [
-      { id: 'HV001', name: 'Bảo An', phone: '0982144193', dob: '2016-05-12', courseNote: 'Học chiều T7' },
-      { id: 'HV002', name: 'Thùy Minh', phone: '0983112233', dob: '2015-08-20', courseNote: '' },
-      { id: 'HV003', name: 'Thùy Linh', phone: '0983112244', dob: '2015-11-02', courseNote: '' },
-      { id: 'HV004', name: 'Mít', phone: '0984556677', dob: '2017-03-10', courseNote: '' }
+      { id: 'HV001', name: 'Bảo An', phone: '0982144193', dob: '2016-05-12', courseNote: 'Phụ huynh đón' },
+      { id: 'HV002', name: 'Minh Anh', phone: '0987654321', dob: '2015-08-20', courseNote: '' }
     ];
 
     const DEFAULT_CLASSES = [
-      { id: 'CL001', day: 'Thứ 7', room: 'Phòng 404', start: '08:30', end: '09:30', subject: 'Thanh nhạc', name: 'Thanh Nhạc CN Bảo An', teacher: 'Cô Hà Thanh Trang', type: 'Cá nhân', status: 'Đang học', students: ['Bảo An'] },
-      { id: 'CL002', day: 'Thứ 7', room: 'Phòng 401', start: '09:30', end: '10:30', subject: 'Piano', name: 'Piano Đôi Thùy Minh - Thùy Linh', teacher: 'Cô Hiền', type: 'Đôi', status: 'Đang học', students: ['Thùy Minh', 'Thùy Linh'] },
-      { id: 'CL003', day: 'Thứ 7', room: 'Phòng 303', start: '10:30', end: '11:30', subject: 'Piano', name: 'Piano Nhóm Sáng T7', teacher: 'Thầy An', type: 'Nhóm', status: 'Đang học', students: ['Mít'] }
+      { id: 'CL_INIT_1', day: 'Thứ 7', room: 'Phòng 404', start: '08:30', end: '09:30', subject: 'Thanh nhạc', name: 'Thanh Nhạc CN Bảo An', teacher: 'Cô Hà Thanh Trang', type: 'Cá nhân', status: 'Đang học', students: ['Bảo An'] },
+      { id: 'CL_INIT_2', day: 'Thứ 7', room: 'Phòng 401', start: '09:00', end: '10:00', subject: 'Piano', name: 'Piano CN Minh Anh', teacher: 'Cô Hiền', type: 'Cá nhân', status: 'Đang học', students: ['Minh Anh'] }
     ];
 
-    const DAYS_ORDER = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+    // -------------------------------------------------------------------------
+    // 3. STATE, LƯU TRỮ ĐA CƠ SỞ & KHÔI PHỤC DỮ LIỆU CŨ
+    // -------------------------------------------------------------------------
+    const REGISTRY_STORAGE_KEY = 'music_talent_branches_registry_v1';
 
-    // -------------------------------------------------------------------------
-    // 2. QUẢN LÝ ĐA CƠ SỞ & KHÔI PHỤC DỮ LIỆU CŨ (LOCALSTORAGE)
-    // -------------------------------------------------------------------------
-    const REGISTRY_KEY = 'mt_branches_registry_v2';
     let branchRegistry = {
-      activeBranchId: 'cg_main',
+      activeBranchId: 'branch_cau_giay',
       branches: [
         {
-          id: 'cg_main',
+          id: 'branch_cau_giay',
           name: 'Music Talent Cầu Giấy',
           address: 'Số 5 Đặng Thùy Trâm, Cầu Giấy • Quản lý Phòng & Lịch đào tạo',
           avatarText: 'MT',
@@ -663,15 +662,11 @@
     let selectedClassIds = new Set();
     let selectedTeacherIds = new Set();
     let selectedStudentIds = new Set();
-    let snoozedAlerts = {};
     let dismissedAlerts = {};
+    let snoozedAlerts = {};
 
-    function getBranchKey(id) {
-      return `mt_branch_state_v3_${id}`;
-    }
-
-    function escapeHtml(str) {
-      return String(str ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    function getBranchKey(branchId) {
+      return `mt_schedule_state_v3_${branchId}`;
     }
 
     function getDayNameFromDate(dateStr) {
@@ -680,281 +675,289 @@
       return ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][d.getDay()];
     }
 
+    function loadRegistry() {
+      try {
+        const raw = localStorage.getItem(REGISTRY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.branches) && parsed.branches.length > 0) {
+            branchRegistry = parsed;
+          }
+        }
+      } catch (e) {}
+      renderBranchBrand();
+    }
+
+    function saveRegistry() {
+      localStorage.setItem(REGISTRY_STORAGE_KEY, JSON.stringify(branchRegistry));
+    }
+
+    function renderBranchBrand() {
+      const active = branchRegistry.branches.find(b => b.id === branchRegistry.activeBranchId) || branchRegistry.branches[0];
+      const nameEl = document.getElementById('brand-name-display');
+      const addrEl = document.getElementById('brand-address-display');
+      const avBtn = document.getElementById('brand-avatar-btn');
+      if (nameEl) nameEl.textContent = active.name;
+      if (addrEl) addrEl.textContent = active.address || 'Quản lý Phòng & Lịch đào tạo';
+      if (avBtn) {
+        if (active.avatarImage) {
+          avBtn.innerHTML = `<img src="${active.avatarImage}" class="w-full h-full object-cover" />`;
+        } else {
+          avBtn.textContent = active.avatarText || active.name.slice(0, 2).toUpperCase();
+        }
+      }
+    }
+
+    function isDefaultStubData(d) {
+      if (!d || typeof d !== 'object') return true;
+      if (d.userClearedSchedule) return false;
+      const cls = Array.isArray(d.classes) ? d.classes : [];
+      if (cls.length === 0 && (!d.history || d.history.length === 0)) return true;
+      if (cls.length <= 2 && cls.every(c => String(c.id || '').startsWith('CL_INIT_'))) return true;
+      return false;
+    }
+
+    function applyParsedDataToState(d) {
+      if (!d || typeof d !== 'object') return;
+      const todayStr = new Date().toISOString().slice(0, 10);
+      state.workingDate = d.workingDate || todayStr;
+      state.selectedDay = d.selectedDay || getDayNameFromDate(state.workingDate);
+      state.scheduleMode = d.scheduleMode || 'grid';
+      state.userClearedSchedule = Boolean(d.userClearedSchedule);
+
+      if (Array.isArray(d.rooms) && d.rooms.length > 0) {
+        state.rooms = d.rooms.map((r, i) => ({
+          id: r.id || `R_${i + 1}`,
+          floor: r.floor || 'Tầng 1',
+          name: r.name || `Phòng ${i + 1}`,
+          equipment: r.equipment || '',
+          subjects: r.subjects || '',
+          rule: r.rule || ''
+        }));
+      } else {
+        state.rooms = JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+      }
+
+      if (Array.isArray(d.teachers)) {
+        state.teachers = d.teachers.map((t, i) => ({
+          id: t.id || `GV${String(i + 1).padStart(3, '0')}`,
+          name: t.name || 'Giáo viên',
+          phone: t.phone || '',
+          subject: t.subject || '',
+          school: t.school || ''
+        }));
+      }
+
+      if (Array.isArray(d.students)) {
+        state.students = d.students.map((s, i) => ({
+          id: s.id || `HV${String(i + 1).padStart(3, '0')}`,
+          name: s.name || 'Học viên',
+          phone: s.phone || '',
+          dob: s.dob || '',
+          courseNote: s.courseNote || ''
+        }));
+      }
+
+      if (Array.isArray(d.classes)) {
+        state.classes = d.classes.map((c, i) => {
+          const roomObj = state.rooms.find(r => r.id === c.roomId || r.name === c.room);
+          const teacherObj = state.teachers.find(t => t.id === c.teacherId || t.name === c.teacher);
+          let stNames = [];
+          if (Array.isArray(c.students)) {
+            stNames = c.students.filter(Boolean);
+          } else if (Array.isArray(c.studentIds)) {
+            stNames = c.studentIds.map(sid => state.students.find(s => s.id === sid)?.name || sid).filter(Boolean);
+          }
+          return {
+            id: c.id || `CL_${i + 1}`,
+            day: c.day || 'Thứ 2',
+            room: roomObj ? roomObj.name : (c.room || state.rooms[0]?.name || 'Phòng 401'),
+            start: c.start || '09:00',
+            end: c.end || '10:00',
+            subject: c.subject || 'Piano',
+            name: c.name || c.title || `${c.subject || 'Lớp'} - ${c.type || 'Cá nhân'}`,
+            teacher: teacherObj ? teacherObj.name : (c.teacher || 'Chưa phân công'),
+            type: c.type || 'Cá nhân',
+            status: c.status || 'Đang học',
+            students: stNames
+          };
+        });
+      }
+
+      state.attendance = d.attendance && typeof d.attendance === 'object' ? d.attendance : (d.dailyLogs || {});
+      state.history = Array.isArray(d.history) ? d.history : [];
+    }
+
+    function scanAllStorageBackups() {
+      const results = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || key === REGISTRY_STORAGE_KEY) continue;
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw || raw[0] !== '{') continue;
+          const parsed = JSON.parse(raw);
+          const d = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+          if (Array.isArray(d.classes) || Array.isArray(d.rooms)) {
+            results.push({
+              key,
+              classCount: Array.isArray(d.classes) ? d.classes.length : 0,
+              roomCount: Array.isArray(d.rooms) ? d.rooms.length : 0,
+              teacherCount: Array.isArray(d.teachers) ? d.teachers.length : 0,
+              studentCount: Array.isArray(d.students) ? d.students.length : 0,
+              isStub: isDefaultStubData(d),
+              data: d
+            });
+          }
+        } catch (e) {}
+      }
+      return results.sort((a, b) => b.classCount - a.classCount);
+    }
+
+    function loadBranchState() {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const key = getBranchKey(branchRegistry.activeBranchId);
+      let loaded = false;
+
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (!isDefaultStubData(parsed)) {
+            applyParsedDataToState(parsed);
+            loaded = true;
+          }
+        }
+      } catch (e) {}
+
+      if (!loaded) {
+        const backups = scanAllStorageBackups().filter(b => !b.isStub && b.classCount > 0);
+        if (backups.length > 0) {
+          applyParsedDataToState(backups[0].data);
+          saveState();
+          loaded = true;
+        }
+      }
+
+      if (!loaded) {
+        state = {
+          workingDate: todayStr,
+          selectedDay: getDayNameFromDate(todayStr),
+          scheduleMode: 'grid',
+          userClearedSchedule: false,
+          rooms: JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
+          teachers: JSON.parse(JSON.stringify(DEFAULT_TEACHERS)),
+          students: JSON.parse(JSON.stringify(DEFAULT_STUDENTS)),
+          classes: JSON.parse(JSON.stringify(DEFAULT_CLASSES)),
+          attendance: {},
+          history: []
+        };
+        saveState();
+      }
+
+      selectedClassIds.clear();
+      selectedTeacherIds.clear();
+      selectedStudentIds.clear();
+    }
+
+    function saveState() {
+      const key = getBranchKey(branchRegistry.activeBranchId);
+      localStorage.setItem(key, JSON.stringify(state));
+      updateNavBadges();
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. TIỆN ÍCH CHUNG, MODAL & TOAST
+    // -------------------------------------------------------------------------
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
     function formatDateVN(dateStr) {
       if (!dateStr) return '';
       const parts = dateStr.split('-');
-      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
-    }
-
-    function getTargetDateForDay(baseDateStr, targetDayName) {
-      if (!baseDateStr || !targetDayName) return baseDateStr;
-      const baseDayName = getDayNameFromDate(baseDateStr);
-      if (baseDayName === targetDayName) return baseDateStr;
-      const dayMap = { 'Chủ nhật': 0, 'Thứ 2': 1, 'Thứ 3': 2, 'Thứ 4': 3, 'Thứ 5': 4, 'Thứ 6': 5, 'Thứ 7': 6 };
-      const baseDate = new Date(baseDateStr + 'T00:00:00');
-      const baseDow = baseDate.getDay();
-      const targetDow = dayMap[targetDayName] ?? baseDow;
-      const diff = (targetDow - baseDow + 7) % 7 || 7;
-      baseDate.setDate(baseDate.getDate() + diff);
-      return baseDate.toISOString().slice(0, 10);
+      if (parts.length !== 3) return dateStr;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
 
     function timeToMinutes(t) {
-      if (!t || typeof t !== 'string' || !t.includes(':')) return 0;
+      if (!t || !t.includes(':')) return 0;
       const [h, m] = t.split(':').map(Number);
       return (h || 0) * 60 + (m || 0);
     }
 
     function minutesToTime(mins) {
-      const h = Math.floor(mins / 60);
+      const h = Math.floor(mins / 60) % 24;
       const m = mins % 60;
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
     }
 
+    function getTargetDateForDay(baseDateStr, targetDayName) {
+      const baseDayName = getDayNameFromDate(baseDateStr);
+      if (baseDayName === targetDayName) return baseDateStr;
+      const baseIdx = DAYS_ORDER.indexOf(baseDayName);
+      const targetIdx = DAYS_ORDER.indexOf(targetDayName);
+      if (baseIdx === -1 || targetIdx === -1) return baseDateStr;
+      let diff = targetIdx - baseIdx;
+      if (diff < 0) diff += 7;
+      const d = new Date(baseDateStr + 'T00:00:00');
+      d.setDate(d.getDate() + diff);
+      return d.toISOString().slice(0, 10);
+    }
+
     function showToast(msg, type = 'success') {
-      const container = document.getElementById('toast-container');
+      const box = document.getElementById('toast-container');
+      if (!box) return;
       const el = document.createElement('div');
-      const colors = type === 'error'
-        ? 'bg-rose-600 text-white'
-        : (type === 'warn' ? 'bg-amber-500 text-white' : 'bg-slate-900 text-white');
-      el.className = `${colors} px-3.5 py-2 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 pointer-events-auto transition`;
-      el.innerHTML = `<span>${type === 'error' ? '⚠️' : '✓'}</span><span>${escapeHtml(msg)}</span>`;
-      container.appendChild(el);
-      setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 250); }, 2800);
-    }
-
-    function loadRegistry() {
-      try {
-        const rawV2 = localStorage.getItem(REGISTRY_KEY);
-        if (rawV2) {
-          branchRegistry = JSON.parse(rawV2);
-          return;
-        }
-        const rawV1 = localStorage.getItem('mt_branches_registry_v1');
-        if (rawV1) {
-          const oldReg = JSON.parse(rawV1);
-          if (oldReg && Array.isArray(oldReg.branches) && oldReg.branches.length) {
-            branchRegistry = oldReg;
-            saveRegistry();
-          }
-        }
-      } catch (e) {}
-    }
-
-    function saveRegistry() {
-      localStorage.setItem(REGISTRY_KEY, JSON.stringify(branchRegistry));
-    }
-
-    function isDefaultStubData(parsed) {
-      if (!parsed || !Array.isArray(parsed.classes)) return true;
-      if (parsed.userClearedSchedule) return false;
-      if (parsed.classes.length === 0) return true;
-      const ids = parsed.classes.map(c => c.id).join(',');
-      return ids === 'CL001,CL002,CL003';
-    }
-
-    function scoreStorageCandidate(parsed) {
-      if (!parsed || typeof parsed !== 'object') return -1;
-      const d = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
-      const classes = Array.isArray(d.classes) ? d.classes : [];
-      const rooms = Array.isArray(d.rooms) ? d.rooms : [];
-      const teachers = Array.isArray(d.teachers) ? d.teachers : [];
-      const students = Array.isArray(d.students) ? d.students : [];
-      const history = Array.isArray(d.history) ? d.history : [];
-      if (!classes.length && !rooms.length && !teachers.length && !students.length && !d.userClearedSchedule) return -1;
-
-      let score = classes.length * 20 + teachers.length * 3 + students.length * 2 + rooms.length + history.length * 5;
-      if (isDefaultStubData(d)) score -= 1000;
-      return score;
-    }
-
-    function scanAllStorageBackups() {
-      const found = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k || k === REGISTRY_KEY || k === 'mt_branches_registry_v1') continue;
-        try {
-          const raw = localStorage.getItem(k);
-          if (!raw || raw[0] !== '{') continue;
-          const parsed = JSON.parse(raw);
-          const d = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
-          const score = scoreStorageCandidate(d);
-          if (score >= -1000) {
-            found.push({
-              key: k,
-              data: d,
-              score,
-              classCount: Array.isArray(d.classes) ? d.classes.length : 0,
-              roomCount: Array.isArray(d.rooms) ? d.rooms.length : 0,
-              teacherCount: Array.isArray(d.teachers) ? d.teachers.length : 0,
-              studentCount: Array.isArray(d.students) ? d.students.length : 0,
-              isStub: isDefaultStubData(d)
-            });
-          }
-        } catch (e) {}
-      }
-      return found.sort((a, b) => b.score - a.score);
-    }
-
-    function findLegacyBranchData(branchId) {
-      const curRaw = localStorage.getItem(getBranchKey(branchId));
-      if (curRaw) {
-        try {
-          const curParsed = JSON.parse(curRaw);
-          if (curParsed && (curParsed.userClearedSchedule || !isDefaultStubData(curParsed))) return curParsed;
-        } catch (e) {}
-      }
-      const allBackups = scanAllStorageBackups();
-      if (allBackups.length && !allBackups[0].isStub) {
-        return allBackups[0].data;
-      }
-      if (curRaw) {
-        try { return JSON.parse(curRaw); } catch (e) {}
-      }
-      return allBackups.length ? allBackups[0].data : null;
-    }
-
-    function purgeLegacySchedulesOnClear() {
-      const activeKey = getBranchKey(branchRegistry.activeBranchId);
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k || k === activeKey || k === REGISTRY_KEY || k === 'mt_branches_registry_v1') continue;
-        if (k.startsWith('mt_branch_state_') || k.startsWith('mt_branch_data_') || k.includes('music') || k.includes('schedule')) {
-          keysToRemove.push(k);
-        }
-      }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-    }
-
-    function normalizeLegacyClass(c, roomsList = state.rooms, teachersList = state.teachers, studentsList = state.students) {
-      const roomObj = roomsList.find(r => r.id === c.roomId || r.name === c.room || r.id === c.room);
-      const teacherObj = teachersList.find(t => t.id === c.teacherId || t.name === c.teacher || t.id === c.teacher);
-      let studentNames = Array.isArray(c.students) ? c.students : [];
-      if (!studentNames.length && Array.isArray(c.studentIds)) {
-        studentNames = c.studentIds.map(sid => studentsList.find(s => s.id === sid)?.name || sid).filter(Boolean);
-      }
-      return {
-        id: c.id || ('CL_' + Math.random().toString(36).slice(2, 9)),
-        day: c.day || 'Thứ 2',
-        room: roomObj?.name || c.room || (roomsList[0]?.name || 'Phòng 401'),
-        start: c.start || '09:00',
-        end: c.end || '10:00',
-        subject: c.subject || 'Piano',
-        name: c.name || c.title || c.subject || 'Lớp học',
-        teacher: teacherObj?.name || c.teacher || 'Chưa phân công',
-        type: c.type || 'Cá nhân',
-        status: c.status || 'Đang học',
-        students: studentNames
+      const styleMap = {
+        success: 'bg-emerald-600 text-white border-emerald-700',
+        error: 'bg-rose-600 text-white border-rose-700',
+        warn: 'bg-amber-500 text-white border-amber-600'
       };
+      el.className = `px-3.5 py-2 rounded-xl shadow-lg border text-xs font-semibold transition-all duration-300 ${styleMap[type] || styleMap.success}`;
+      el.textContent = msg;
+      box.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 300);
+      }, 2800);
     }
 
-    function applyParsedDataToState(parsed) {
-      const today = new Date().toISOString().slice(0, 10);
-      const todayDayName = getDayNameFromDate(today);
-      const rooms = Array.isArray(parsed.rooms) && parsed.rooms.length ? parsed.rooms : JSON.parse(JSON.stringify(DEFAULT_ROOMS));
-      const teachers = Array.isArray(parsed.teachers) ? parsed.teachers : [];
-      const students = Array.isArray(parsed.students) ? parsed.students : [];
-      const classes = Array.isArray(parsed.classes)
-        ? parsed.classes.map(c => normalizeLegacyClass(c, rooms, teachers, students))
-        : [];
-
-      state.workingDate = parsed.workingDate || today;
-      state.selectedDay = parsed.selectedDay || todayDayName;
-      state.scheduleMode = parsed.scheduleMode || 'grid';
-      state.userClearedSchedule = Boolean(parsed.userClearedSchedule);
-      state.rooms = rooms;
-      state.teachers = teachers;
-      state.students = students;
-      state.classes = classes;
-      state.attendance = parsed.attendance || parsed.dailyLogs || {};
-      state.history = Array.isArray(parsed.history) ? parsed.history : [];
+    function openModal(title, bodyHtml, footerHtml = '', maxWidthClass = 'max-w-2xl') {
+      const backdrop = document.getElementById('modal-backdrop');
+      const box = document.getElementById('modal-box');
+      box.className = `bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${maxWidthClass} max-h-[90vh] flex flex-col overflow-hidden`;
+      document.getElementById('modal-title').innerHTML = title;
+      document.getElementById('modal-body').innerHTML = bodyHtml;
+      document.getElementById('modal-footer').innerHTML = footerHtml;
+      backdrop.classList.remove('hidden');
+      backdrop.classList.add('flex');
     }
 
-    function loadBranchState() {
-      const today = new Date().toISOString().slice(0, 10);
-      const todayDayName = getDayNameFromDate(today);
-      try {
-        const parsed = findLegacyBranchData(branchRegistry.activeBranchId);
-        if (parsed) {
-          applyParsedDataToState(parsed);
-          saveState();
-        } else {
-          state = {
-            workingDate: today,
-            selectedDay: todayDayName,
-            scheduleMode: 'grid',
-            userClearedSchedule: false,
-            rooms: JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
-            teachers: JSON.parse(JSON.stringify(DEFAULT_TEACHERS)),
-            students: JSON.parse(JSON.stringify(DEFAULT_STUDENTS)),
-            classes: JSON.parse(JSON.stringify(DEFAULT_CLASSES)),
-            attendance: {},
-            history: []
-          };
-          saveState();
-        }
-      } catch (e) {
-        state = {
-          workingDate: today,
-          selectedDay: todayDayName,
-          scheduleMode: 'grid',
-          userClearedSchedule: false,
-          rooms: JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
-          teachers: [],
-          students: [],
-          classes: [],
-          attendance: {},
-          history: []
-        };
-      }
-      selectedClassIds.clear();
-      selectedTeacherIds.clear();
-      selectedStudentIds.clear();
-      renderBranchBrand();
+    function closeModal() {
+      const backdrop = document.getElementById('modal-backdrop');
+      backdrop.classList.add('hidden');
+      backdrop.classList.remove('flex');
     }
 
-    function saveState() {
-      localStorage.setItem(getBranchKey(branchRegistry.activeBranchId), JSON.stringify(state));
-      updateNavBadges();
+    function closeModalOnBackdrop(e) {
+      if (e.target.id === 'modal-backdrop') closeModal();
     }
 
-    function renderBranchBrand() {
-      const active = branchRegistry.branches.find(b => b.id === branchRegistry.activeBranchId) || branchRegistry.branches[0];
-      if (!active) return;
-      document.getElementById('brand-name-display').textContent = active.name;
-      document.getElementById('brand-address-display').textContent = active.address || '';
-      const avBtn = document.getElementById('brand-avatar-btn');
-      if (active.avatarImage) {
-        avBtn.innerHTML = `<img src="${active.avatarImage}" class="w-full h-full object-cover" />`;
-      } else {
-        avBtn.textContent = active.avatarText || active.name.slice(0, 2).toUpperCase();
-      }
-    }
-
-    function updateNavBadges() {
-      document.getElementById('nav-history-badge').textContent = state.history.length;
-      document.getElementById('nav-room-count').textContent = state.rooms.length;
-      document.getElementById('nav-teacher-count').textContent = state.teachers.length;
-      document.getElementById('nav-student-count').textContent = state.students.length;
-    }
-
-    // -------------------------------------------------------------------------
-    // 3. ĐIỀU HƯỚNG TAB & MODAL CHUNG
-    // -------------------------------------------------------------------------
     function switchTab(tab) {
       ['schedule', 'history', 'report', 'rooms', 'teachers', 'students'].forEach(t => {
-        const view = document.getElementById(`view-${t}`);
-        const btn = document.getElementById(`tab-${t}`);
-        if (view) view.classList.toggle('hidden', t !== tab);
-        if (btn) {
+        const viewEl = document.getElementById(`view-${t}`);
+        const tabBtn = document.getElementById(`tab-${t}`);
+        if (viewEl) viewEl.classList.toggle('hidden', t !== tab);
+        if (tabBtn) {
           if (t === tab) {
-            btn.className = 'nav-tab px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1 whitespace-nowrap bg-white text-indigo-700 shadow-2xs';
+            tabBtn.className = 'nav-tab px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center gap-1 whitespace-nowrap bg-white text-indigo-700 shadow-2xs';
           } else {
-            btn.className = 'nav-tab px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 whitespace-nowrap text-slate-600 hover:text-slate-900';
+            tabBtn.className = 'nav-tab px-2.5 py-1 rounded-lg text-xs font-medium transition flex items-center gap-1 whitespace-nowrap text-slate-600 hover:text-slate-900';
           }
         }
       });
+
       if (tab === 'schedule') renderSchedule();
       if (tab === 'history') renderHistory();
       if (tab === 'report') renderReport();
@@ -963,30 +966,46 @@
       if (tab === 'students') renderStudents();
     }
 
-    function openModal(title, bodyHtml, footerHtml = '', maxWidth = 'max-w-2xl') {
-      document.getElementById('modal-box').className = `bg-white rounded-2xl shadow-2xl border border-slate-200 w-full ${maxWidth} max-h-[90vh] flex flex-col overflow-hidden`;
-      document.getElementById('modal-title').innerHTML = title;
-      document.getElementById('modal-body').innerHTML = bodyHtml;
-      document.getElementById('modal-footer').innerHTML = footerHtml;
-      document.getElementById('modal-backdrop').classList.remove('hidden');
+    function updateNavBadges() {
+      const hBadge = document.getElementById('nav-history-badge');
+      const rBadge = document.getElementById('nav-room-count');
+      const tBadge = document.getElementById('nav-teacher-count');
+      const sBadge = document.getElementById('nav-student-count');
+      if (hBadge) hBadge.textContent = state.history.length;
+      if (rBadge) rBadge.textContent = state.rooms.length;
+      if (tBadge) tBadge.textContent = state.teachers.length;
+      if (sBadge) sBadge.textContent = state.students.length;
     }
 
-    function closeModal() {
-      document.getElementById('modal-backdrop').classList.add('hidden');
-    }
-
-    function closeModalOnBackdrop(e) {
-      if (e.target.id === 'modal-backdrop') closeModal();
+    function ensureStudentsInDirectory(namesArr, defaultPhone = '') {
+      let added = 0;
+      (namesArr || []).forEach(rawName => {
+        const clean = (rawName || '').trim();
+        if (!clean) return;
+        const exists = state.students.some(s => s.name.toLowerCase() === clean.toLowerCase());
+        if (!exists) {
+          state.students.push({
+            id: 'HV' + String(state.students.length + 1).padStart(3, '0') + '_' + Date.now().toString(36).slice(-2),
+            name: clean,
+            phone: defaultPhone,
+            dob: '',
+            courseNote: ''
+          });
+          added++;
+        }
+      });
+      return added;
     }
 
     // -------------------------------------------------------------------------
-    // 4. ĐIỂM DANH HÀNG NGÀY & DỮ LIỆU ĐẾN LỚP / RA VỀ
+    // 5. ĐIỂM DANH HÀNG NGÀY & DỰNG LỊCH PHÒNG HỌC (GRID & LIST)
     // -------------------------------------------------------------------------
     function getAttRecord(dateStr, classObj) {
       const key = `${dateStr}_${classObj.id}`;
       if (!state.attendance[key]) {
         state.attendance[key] = {
-          hasClass: classObj.status === 'Đang học',
+          hasClass: true,
+          checked: false,
           timeConfirmed: false,
           actualStart: classObj.start,
           actualEnd: classObj.end,
@@ -996,402 +1015,386 @@
           lateMinutes: 0,
           lateReason: '',
           presentStudents: [],
-          studentStatus: {} // { [studentName]: { arrived: bool, departureType: ''|'self'|'pickup', pickupBy: '' } }
+          studentStatus: {}
         };
       }
       const rec = state.attendance[key];
-      if (!rec.studentStatus) rec.studentStatus = {};
       if (!Array.isArray(rec.presentStudents)) rec.presentStudents = [];
-      // Đồng bộ hai chiều giữa presentStudents và studentStatus
-      rec.presentStudents.forEach(stName => {
-        if (!rec.studentStatus[stName]) rec.studentStatus[stName] = { arrived: true, departureType: '', pickupBy: '' };
-        else rec.studentStatus[stName].arrived = true;
-      });
+      if (!rec.studentStatus || typeof rec.studentStatus !== 'object') rec.studentStatus = {};
       return rec;
     }
 
     function isRecordChecked(rec) {
       if (!rec || !rec.hasClass) return false;
-      const hasArrivedStudent = (rec.presentStudents && rec.presentStudents.length > 0) ||
-        Object.values(rec.studentStatus || {}).some(s => s && s.arrived);
-      return Boolean(rec.teacherArrived || rec.timeConfirmed || hasArrivedStudent);
+      return Boolean(rec.checked || rec.teacherArrived || rec.timeConfirmed || (rec.presentStudents && rec.presentStudents.length > 0));
     }
 
     function onWorkingDateChange() {
       const val = document.getElementById('working-date').value;
       if (!val) return;
       state.workingDate = val;
-      state.selectedDay = getDayNameFromDate(val);
-      document.getElementById('filter-day').value = state.selectedDay;
-      selectedClassIds.clear();
+      const dayName = getDayNameFromDate(val);
+      state.selectedDay = dayName;
+      document.getElementById('filter-day').value = dayName;
       saveState();
       renderSchedule();
       refreshAlertCenter();
     }
 
-    function selectDay(day) {
-      state.selectedDay = day;
-      document.getElementById('filter-day').value = day;
+    function selectDay(dayName) {
+      state.selectedDay = dayName;
+      document.getElementById('filter-day').value = dayName;
       selectedClassIds.clear();
       saveState();
       renderSchedule();
     }
 
     function onFilterDayChange(val) {
-      if (val) state.selectedDay = val;
+      if (val) {
+        state.selectedDay = val;
+      }
       selectedClassIds.clear();
       renderSchedule();
     }
 
     function setScheduleMode(mode) {
       state.scheduleMode = mode;
-      const gridBtn = document.getElementById('mode-grid');
-      const listBtn = document.getElementById('mode-list');
-      const gridBox = document.getElementById('schedule-grid-container');
-      const listBox = document.getElementById('schedule-list-container');
+      const btnGrid = document.getElementById('mode-grid');
+      const btnList = document.getElementById('mode-list');
+      const boxGrid = document.getElementById('schedule-grid-container');
+      const boxList = document.getElementById('schedule-list-container');
+
       if (mode === 'grid') {
-        gridBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-indigo-700 shadow-2xs transition cursor-pointer';
-        listBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:text-slate-900 transition cursor-pointer';
-        gridBox.classList.remove('hidden');
-        listBox.classList.add('hidden');
+        btnGrid.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-indigo-700 shadow-2xs transition cursor-pointer';
+        btnList.className = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:text-slate-900 transition cursor-pointer';
+        boxGrid.classList.remove('hidden');
+        boxList.classList.add('hidden');
       } else {
-        listBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-indigo-700 shadow-2xs transition cursor-pointer';
-        gridBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:text-slate-900 transition cursor-pointer';
-        listBox.classList.remove('hidden');
-        gridBox.classList.add('hidden');
+        btnList.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-indigo-700 shadow-2xs transition cursor-pointer';
+        btnGrid.className = 'px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-600 hover:text-slate-900 transition cursor-pointer';
+        boxList.classList.remove('hidden');
+        boxGrid.classList.add('hidden');
       }
       renderSchedule();
     }
 
-    function updateHeaderEarliestLatest() {
-      const dayClasses = state.classes.filter(c => c.day === state.selectedDay && c.status !== 'Đã hủy');
-      let minStart = Infinity;
-      let maxEnd = -Infinity;
+    function populateScheduleFilters() {
+      const roomSel = document.getElementById('filter-room');
+      const teacherSel = document.getElementById('filter-teacher');
+      const curR = roomSel.value;
+      const curT = teacherSel.value;
 
-      dayClasses.forEach(c => {
-        const targetDate = getTargetDateForDay(state.workingDate, c.day);
-        const rec = getAttRecord(targetDate, c);
-        if (!rec.hasClass) return;
-        const s = timeToMinutes(rec.actualStart || c.start);
-        const e = timeToMinutes(rec.actualEnd || c.end);
-        if (s > 0 && s < minStart) minStart = s;
-        if (e > 0 && e > maxEnd) maxEnd = e;
-      });
+      roomSel.innerHTML = `<option value="">Tất cả phòng học (${state.rooms.length})</option>` +
+        state.rooms.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join('');
 
-      document.getElementById('header-earliest-time').textContent = minStart < Infinity ? minutesToTime(minStart) : 'Trống';
-      document.getElementById('header-latest-time').textContent = maxEnd > -Infinity ? minutesToTime(maxEnd) : 'Trống';
+      const teacherNames = Array.from(new Set([
+        ...state.teachers.map(t => t.name),
+        ...state.classes.map(c => c.teacher).filter(Boolean)
+      ]));
+      teacherSel.innerHTML = `<option value="">Tất cả giáo viên (${teacherNames.length})</option>` +
+        teacherNames.map(tn => `<option value="${escapeHtml(tn)}">${escapeHtml(tn)}</option>`).join('');
+
+      roomSel.value = curR;
+      teacherSel.value = curT;
     }
 
-    function getFilteredClasses() {
+    function getFilteredScheduleClasses() {
       const kw = (document.getElementById('filter-search').value || '').trim().toLowerCase();
-      const fDay = state.scheduleMode === 'grid' ? state.selectedDay : (document.getElementById('filter-day').value || '');
+      const fDay = document.getElementById('filter-day').value;
       const fRoom = document.getElementById('filter-room').value;
       const fTeacher = document.getElementById('filter-teacher').value;
       const fType = document.getElementById('filter-type').value;
       const fStatus = document.getElementById('filter-status').value;
 
       return state.classes.filter(c => {
-        if (fDay && c.day !== fDay) return false;
+        if (state.scheduleMode === 'grid') {
+          if (c.day !== state.selectedDay) return false;
+        } else {
+          if (fDay && c.day !== fDay) return false;
+        }
+
         if (fRoom && c.room !== fRoom) return false;
         if (fTeacher && c.teacher !== fTeacher) return false;
         if (fType && c.type !== fType) return false;
 
         const targetDate = getTargetDateForDay(state.workingDate, c.day);
-        const isExactDay = targetDate === state.workingDate;
         const rec = getAttRecord(targetDate, c);
-        const checked = isExactDay && isRecordChecked(rec);
+        const checked = isRecordChecked(rec);
+
         if (fStatus === 'CHECKED' && !checked) return false;
         if (fStatus === 'UNCHECKED' && (!rec.hasClass || checked)) return false;
         if (fStatus === 'OFF_TODAY' && rec.hasClass) return false;
         if (['Đang học', 'Tạm nghỉ', 'Đã hủy'].includes(fStatus) && c.status !== fStatus) return false;
 
         if (kw) {
-          const hay = `${c.name} ${c.subject} ${c.teacher} ${(c.students || []).join(' ')}`.toLowerCase();
+          const hay = `${c.name} ${c.subject} ${c.teacher} ${c.room} ${(c.students || []).join(' ')}`.toLowerCase();
           if (!hay.includes(kw)) return false;
         }
         return true;
       });
     }
 
-    function renderSchedule() {
-      const dateStr = state.workingDate;
-      const dayBadge = document.getElementById('working-day-badge');
-      if (dayBadge) dayBadge.textContent = getDayNameFromDate(dateStr);
-      const closeBtnLabel = document.getElementById('close-day-btn-label');
-      if (closeBtnLabel) closeBtnLabel.textContent = `Chốt ca học ngày ${formatDateVN(dateStr)}`;
+    function updateHeaderAndDailySummary() {
+      const wdDate = state.workingDate;
+      const wdDayName = getDayNameFromDate(wdDate);
+      document.getElementById('working-day-badge').textContent = wdDayName;
+      document.getElementById('close-day-btn-label').textContent = `Chốt ca học ngày ${formatDateVN(wdDate)}`;
 
-      const isClosed = state.history.some(h => h.date === dateStr);
+      const isClosed = state.history.some(h => h.date === wdDate);
       document.getElementById('daily-closed-status').classList.toggle('hidden', !isClosed);
 
-      // Update Day Pills
-      const daySel = document.getElementById('day-selector');
-      daySel.innerHTML = DAYS_ORDER.map(d => {
-        const cnt = state.classes.filter(c => c.day === d).length;
-        const active = d === state.selectedDay;
-        return `<button onclick="selectDay('${d}')" class="px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${active ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}">
-          ${d} <span class="opacity-75 text-[10px]">(${cnt})</span>
-        </button>`;
-      }).join('');
+      const workingDayClasses = state.classes.filter(c => c.day === wdDayName && c.status === 'Đang học');
+      let activeToday = 0;
+      let studentVisits = 0;
+      let lateCount = 0;
 
-      // Populate Filter Dropdowns
-      const rSel = document.getElementById('filter-room');
-      const tSel = document.getElementById('filter-teacher');
-      const curR = rSel.value, curT = tSel.value;
-      rSel.innerHTML = `<option value="">Tất cả phòng học (${state.rooms.length})</option>` + state.rooms.map(r => `<option value="${escapeHtml(r.name)}">${escapeHtml(r.name)}</option>`).join('');
-      tSel.innerHTML = `<option value="">Tất cả giáo viên (${state.teachers.length})</option>` + state.teachers.map(t => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('');
-      rSel.value = curR;
-      tSel.value = curT;
-
-      // Daily & KPI summary
-      const dayAll = state.classes.filter(c => c.day === state.selectedDay);
-      let activeClassesCount = 0, checkedCount = 0, studentVisits = 0, lateClasses = 0;
-      const activeRoomsSet = new Set();
-      const activeTeachersSet = new Set();
-
-      dayAll.forEach(c => {
-        const targetDate = getTargetDateForDay(dateStr, c.day);
-        const isExactDay = targetDate === dateStr;
-        const rec = getAttRecord(targetDate, c);
+      workingDayClasses.forEach(c => {
+        const rec = getAttRecord(wdDate, c);
         if (rec.hasClass) {
-          activeClassesCount++;
-          activeRoomsSet.add(c.room);
-          activeTeachersSet.add(rec.isSubstitute && rec.substituteTeacher ? rec.substituteTeacher : c.teacher);
-          if (isExactDay && isRecordChecked(rec)) checkedCount++;
-          if (isExactDay && rec.lateMinutes > 0) lateClasses++;
-          if (isExactDay) {
-            const arrivedCnt = Object.values(rec.studentStatus || {}).filter(s => s && s.arrived).length;
-            studentVisits += arrivedCnt;
-          }
+          activeToday++;
+          studentVisits += (rec.presentStudents || []).length;
+          if (rec.lateMinutes > 0) lateCount++;
         }
       });
 
-      document.getElementById('daily-att-classes').textContent = `${checkedCount}/${activeClassesCount} lớp`;
+      document.getElementById('daily-att-classes').textContent = `${activeToday}/${workingDayClasses.length} lớp`;
       document.getElementById('daily-att-students').textContent = `${studentVisits} lượt`;
-      document.getElementById('daily-att-late').textContent = `${lateClasses} ca`;
+      document.getElementById('daily-att-late').textContent = `${lateCount} ca`;
+
+      // Khung giờ sớm nhất & muộn nhất của ngày đang xem
+      const viewDayClasses = state.classes.filter(c => c.day === state.selectedDay && c.status === 'Đang học');
+      const viewTargetDate = getTargetDateForDay(wdDate, state.selectedDay);
+      let earliestMin = null;
+      let latestMin = null;
+      viewDayClasses.forEach(c => {
+        const rec = getAttRecord(viewTargetDate, c);
+        if (!rec.hasClass) return;
+        const s = timeToMinutes(rec.actualStart || c.start);
+        const e = timeToMinutes(rec.actualEnd || c.end);
+        if (earliestMin === null || s < earliestMin) earliestMin = s;
+        if (latestMin === null || e > latestMin) latestMin = e;
+      });
+
+      document.getElementById('header-earliest-time').textContent = earliestMin !== null ? minutesToTime(earliestMin) : 'Trống';
+      document.getElementById('header-latest-time').textContent = latestMin !== null ? minutesToTime(latestMin) : 'Trống';
+
+      // KPI Cards
+      const checkedToday = viewDayClasses.filter(c => isRecordChecked(getAttRecord(viewTargetDate, c))).length;
+      const activeRooms = new Set(viewDayClasses.map(c => c.room)).size;
+      const activeTeachers = new Set(viewDayClasses.map(c => c.teacher).filter(Boolean)).size;
 
       document.getElementById('schedule-stats').innerHTML = `
-        <div class="bg-white p-2.5 rounded-xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Tổng ca ${state.selectedDay}</div>
-          <div class="text-base font-extrabold text-slate-900 mt-0.5">${dayAll.length} ca</div>
+        <div class="bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="text-[11px] text-slate-500 font-medium">Tổng ca ${escapeHtml(state.selectedDay)}</div>
+          <div class="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">${viewDayClasses.length} ca</div>
         </div>
-        <div class="bg-white p-2.5 rounded-xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Đã check hôm nay</div>
-          <div class="text-base font-extrabold text-emerald-600 mt-0.5">${checkedCount}/${activeClassesCount} ca</div>
+        <div class="bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="text-[11px] text-slate-500 font-medium">Đã check / điểm danh</div>
+          <div class="text-sm sm:text-base font-extrabold text-emerald-600 mt-0.5">${checkedToday}/${viewDayClasses.length} ca</div>
         </div>
-        <div class="bg-white p-2.5 rounded-xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Phòng hoạt động</div>
-          <div class="text-base font-extrabold text-indigo-600 mt-0.5">${activeRoomsSet.size}/${state.rooms.length} phòng</div>
+        <div class="bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="text-[11px] text-slate-500 font-medium">Phòng hoạt động</div>
+          <div class="text-sm sm:text-base font-extrabold text-indigo-600 mt-0.5">${activeRooms}/${state.rooms.length} phòng</div>
         </div>
-        <div class="bg-white p-2.5 rounded-xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Giáo viên đứng lớp</div>
-          <div class="text-base font-extrabold text-violet-600 mt-0.5">${activeTeachersSet.size} GV</div>
+        <div class="bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="text-[11px] text-slate-500 font-medium">Giáo viên đứng lớp</div>
+          <div class="text-sm sm:text-base font-extrabold text-violet-600 mt-0.5">${activeTeachers} GV</div>
         </div>
-        <div class="bg-white p-2.5 rounded-xl border border-slate-200">
-          <div class="text-[11px] text-slate-500">Tổng lịch cả tuần</div>
-          <div class="text-base font-extrabold text-slate-800 mt-0.5">${state.classes.length} ca</div>
+        <div class="bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-2xs">
+          <div class="text-[11px] text-slate-500 font-medium">Tổng lịch cả tuần</div>
+          <div class="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">${state.classes.length} ca</div>
         </div>
       `;
+    }
 
-      updateHeaderEarliestLatest();
+    function renderDaySelector() {
+      const container = document.getElementById('day-selector');
+      container.innerHTML = DAYS_ORDER.map(day => {
+        const count = state.classes.filter(c => c.day === day).length;
+        const active = day === state.selectedDay;
+        return `
+          <button onclick="selectDay('${day}')"
+            class="px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${active ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}">
+            ${day} <span class="opacity-75 text-[10px]">(${count})</span>
+          </button>
+        `;
+      }).join('');
+    }
 
+    function renderSchedule() {
+      populateScheduleFilters();
+      renderDaySelector();
+      updateHeaderAndDailySummary();
       if (state.scheduleMode === 'grid') renderTimetableGrid();
       else renderScheduleList();
     }
 
     // -------------------------------------------------------------------------
-    // 5. LƯỚI 10 PHÒNG THEO TỌA ĐỘ PHÚT & VẠCH GIỜ THỰC TẾ
+    // 6. DỰNG LƯỚI 10 PHÒNG THEO TỌA ĐỘ PHÚT & VẠCH THỜI GIAN THỰC
     // -------------------------------------------------------------------------
     function renderTimetableGrid() {
-      const dateStr = state.workingDate;
       const fRoom = document.getElementById('filter-room').value;
-      const rooms = fRoom ? state.rooms.filter(r => r.name === fRoom) : state.rooms;
-      const classes = getFilteredClasses();
+      const roomsToShow = fRoom ? state.rooms.filter(r => r.name === fRoom) : state.rooms;
+      const filteredClasses = getFilteredScheduleClasses();
+      const isExactWorkingDay = getDayNameFromDate(state.workingDate) === state.selectedDay;
+      const targetDate = getTargetDateForDay(state.workingDate, state.selectedDay);
 
-      const START_MIN = 8 * 60;  // 08:00
-      const END_MIN = 22 * 60;   // 22:00
-      const TOTAL_MIN = END_MIN - START_MIN;
-      const PX_PER_MIN = 1.35;   // 81px mỗi giờ => dóng thẳng hàng và khít nhau
-      const TOTAL_HEIGHT = Math.round(TOTAL_MIN * PX_PER_MIN);
+      const startHour = 8;
+      const endHour = 21;
+      const totalMins = (endHour - startHour + 1) * 60;
+      const pxPerMin = 1.45; // ~87px / giờ
+      const totalHeight = Math.round(totalMins * pxPerMin);
 
-      // Tính vạch giờ thực tế (chỉ hiển thị nếu workingDate là hôm nay)
       const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
       const nowMins = now.getHours() * 60 + now.getMinutes();
-      const showNowLine = (dateStr === todayStr) && nowMins >= START_MIN && nowMins <= END_MIN;
-      const nowTopPx = showNowLine ? Math.round((nowMins - START_MIN) * PX_PER_MIN) : 0;
-      const nowLabel = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const showLiveLine = state.workingDate === todayStr && isExactWorkingDay && nowMins >= startHour * 60 && nowMins <= (endHour + 1) * 60;
+      const liveTopPx = showLiveLine ? Math.round((nowMins - startHour * 60) * pxPerMin) : 0;
 
-      // Dựng mốc 30 phút bên trục trái & đường kẻ ngang
+      // Trục giờ bên trái (mỗi 30 phút 1 vạch)
       let timeAxisHtml = '';
-      let horizontalLinesHtml = '';
-      for (let m = START_MIN; m <= END_MIN; m += 30) {
-        const topPx = Math.round((m - START_MIN) * PX_PER_MIN);
-        const isHour = m % 60 === 0;
-        if (m < END_MIN) {
-          timeAxisHtml += `
-            <div style="top: ${topPx}px; height: ${Math.round(30 * PX_PER_MIN)}px;"
-              class="absolute left-0 right-0 border-b ${isHour ? 'border-slate-200' : 'border-slate-100'} flex items-start justify-center pt-0.5 text-[11px] ${isHour ? 'font-bold text-slate-600' : 'text-slate-400'}">
-              ${minutesToTime(m)}
-            </div>`;
-        }
-        horizontalLinesHtml += `
-          <div style="top: ${topPx}px;" class="absolute left-0 right-0 border-t ${isHour ? 'border-slate-200/90' : 'border-slate-100'} pointer-events-none"></div>`;
+      for (let m = startHour * 60; m <= (endHour + 1) * 60; m += 30) {
+        const top = Math.round((m - startHour * 60) * pxPerMin);
+        const isFullHour = m % 60 === 0;
+        timeAxisHtml += `
+          <div style="top:${top}px" class="absolute left-0 right-0 border-t ${isFullHour ? 'border-slate-200 font-bold text-slate-700' : 'border-slate-100 text-slate-400'} text-[10px] text-center pt-0.5 select-none">
+            ${minutesToTime(m)}
+          </div>
+        `;
       }
 
-      // Header các phòng
-      const headerHtml = `
-        <div class="flex sticky top-0 z-20 bg-slate-50 border-b border-slate-200 shadow-2xs">
-          <div class="w-16 shrink-0 py-2.5 px-1 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 sticky left-0 bg-slate-50 z-30">
-            GIỜ
+      if (showLiveLine) {
+        timeAxisHtml += `
+          <div style="top:${liveTopPx}px" class="absolute left-0 right-0 -translate-y-1/2 z-20 flex justify-center">
+            <span class="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[10px] font-extrabold shadow">${minutesToTime(nowMins)}</span>
           </div>
-          <div class="flex-1 grid" style="grid-template-columns: repeat(${Math.max(rooms.length, 1)}, minmax(125px, 1fr));">
-            ${rooms.map(r => `
-              <div class="py-2 px-1.5 text-center border-r border-slate-200 last:border-r-0">
-                <div class="font-bold text-xs text-slate-900 truncate">${escapeHtml(r.name)}</div>
-                <div class="text-[10px] text-slate-400 truncate">${escapeHtml(r.subjects || r.floor)}</div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
+        `;
+      }
 
       // Các cột phòng học
-      const roomColsHtml = rooms.map(room => {
-        const roomClasses = classes
-          .filter(c => c.room === room.name)
-          .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+      const roomColsHtml = roomsToShow.map(room => {
+        const roomClasses = filteredClasses.filter(c => c.room === room.name);
 
-        const cardsHtml = roomClasses.map(c => {
-          const targetDate = getTargetDateForDay(dateStr, c.day);
-          const isExactDay = targetDate === dateStr;
+        let hourLines = '';
+        for (let m = startHour * 60; m < (endHour + 1) * 60; m += 30) {
+          const top = Math.round((m - startHour * 60) * pxPerMin);
+          const h = Math.round(30 * pxPerMin);
+          const isFullHour = m % 60 === 0;
+          hourLines += `
+            <div onclick="openClassForm(null, { day: '${state.selectedDay}', room: '${escapeHtml(room.name)}', start: '${minutesToTime(m)}', end: '${minutesToTime(m + 60)}' })"
+              style="top:${top}px; height:${h}px"
+              class="absolute left-0 right-0 border-t ${isFullHour ? 'border-slate-200' : 'border-slate-100'} hover:bg-indigo-50/40 cursor-pointer transition z-0"
+              title="Bấm để thêm ca vào ${escapeHtml(room.name)} lúc ${minutesToTime(m)}">
+            </div>
+          `;
+        }
+
+        // Lớp phủ màu phần giờ đã qua (nằm dưới khối lớp học z-5)
+        const elapsedOverlay = showLiveLine
+          ? `<div style="top:0; height:${liveTopPx}px" class="absolute left-0 right-0 bg-slate-200/35 pointer-events-none z-[1]"></div>
+             <div style="top:${liveTopPx}px" class="absolute left-0 right-0 border-t-2 border-rose-500 pointer-events-none z-20"></div>`
+          : '';
+
+        const blocksHtml = roomClasses.map(c => {
+          const st = getSubjectStyle(c.subject);
           const rec = getAttRecord(targetDate, c);
           const sTime = rec.actualStart || c.start;
           const eTime = rec.actualEnd || c.end;
-          const sMin = Math.max(START_MIN, timeToMinutes(sTime));
-          const eMin = Math.min(END_MIN, Math.max(sMin + 30, timeToMinutes(eTime)));
-          const topPx = Math.round((sMin - START_MIN) * PX_PER_MIN);
-          const heightPx = Math.max(40, Math.round((eMin - sMin) * PX_PER_MIN));
+          const sMin = Math.max(startHour * 60, timeToMinutes(sTime));
+          const eMin = Math.min((endHour + 1) * 60, Math.max(sMin + 30, timeToMinutes(eTime)));
 
-          const st = getSubjectStyle(c.subject);
-          const checked = isExactDay && isRecordChecked(rec);
-          const displayTeacher = rec.isSubstitute && rec.substituteTeacher ? `${rec.substituteTeacher} (Thay)` : c.teacher;
+          const topPx = Math.round((sMin - startHour * 60) * pxPerMin);
+          const heightPx = Math.max(36, Math.round((eMin - sMin) * pxPerMin) - 1);
 
+          const checked = isExactWorkingDay && isRecordChecked(rec);
+          const teacherDisplay = rec.isSubstitute && rec.substituteTeacher ? `${rec.substituteTeacher} (Thay)` : c.teacher;
           const studentsArr = Array.isArray(c.students) ? c.students : [];
-          const arrivedCount = studentsArr.filter(sn => rec.studentStatus[sn]?.arrived).length;
-          const studentBadgeText = checked && studentsArr.length > 0 ? `${arrivedCount}/${studentsArr.length} HV` : `${studentsArr.length} HV`;
+          const presentCnt = (rec.presentStudents || []).length;
+          const hvBadge = checked ? `${presentCnt}/${studentsArr.length} HV` : `${studentsArr.length} HV`;
 
-          // Hiển thị tên HV nếu là lớp Cá nhân / Đôi (1-2 HV), ẩn tên nếu là lớp Nhóm
-          const isIndividualOrDuo = (c.type === 'Cá nhân' || c.type === 'Đôi') && studentsArr.length > 0 && studentsArr.length <= 2;
-          const studentNamesLine = isIndividualOrDuo
-            ? `<div class="text-[10px] font-semibold text-indigo-800 truncate mt-0.5">👤 ${escapeHtml(studentsArr.join(', '))}</div>`
-            : '';
+          // Chỉ hiển thị tên HV nếu là lớp Cá nhân (1 HV) hoặc Đôi (2 HV)
+          const showStudentNames = (c.type === 'Cá nhân' || c.type === 'Đôi' || studentsArr.length <= 2) && studentsArr.length > 0 && c.type !== 'Nhóm';
 
           return `
             <div onclick="event.stopPropagation(); openClassDetail('${c.id}')"
-              style="top: ${topPx}px; height: ${heightPx}px;"
-              class="absolute left-1 right-1 z-10 rounded-lg border px-1.5 py-1 flex flex-col justify-between overflow-hidden shadow-2xs hover:shadow-md hover:z-20 transition cursor-pointer ${rec.hasClass ? `${st.bg} ${st.border}` : 'bg-slate-100 border-slate-300 opacity-65'}">
+              style="top:${topPx}px; height:${heightPx}px"
+              class="absolute left-1 right-1 rounded-lg border px-2 py-1 flex flex-col justify-between overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer z-10 ${rec.hasClass ? `${st.bg} ${st.border}` : 'bg-slate-100 border-slate-300 opacity-65'}">
               <div>
-                <div class="flex items-center justify-between gap-1 leading-none">
+                <div class="flex items-center justify-between gap-1 leading-tight">
                   <span class="text-[10px] font-semibold text-slate-600">${sTime}-${eTime}</span>
-                  <div class="flex items-center gap-0.5 shrink-0">
-                    ${checked ? `<span title="Đã điểm danh" class="w-3.5 h-3.5 rounded-full bg-emerald-500 text-white text-[9px] font-bold inline-flex items-center justify-center">✓</span>` : ''}
-                    ${!rec.hasClass ? `<span class="px-1 rounded bg-slate-500 text-white text-[9px] font-bold">Nghỉ</span>` :
-                      (rec.lateMinutes > 0 ? `<span class="px-1 rounded bg-rose-600 text-white text-[9px] font-bold">-${rec.lateMinutes}p</span>` : '')}
+                  <div class="flex items-center gap-1 shrink-0">
+                    ${checked ? `<span title="Đã check / điểm danh" class="w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center shadow-2xs">✓</span>` : ''}
+                    ${!rec.hasClass ? `<span class="px-1.5 py-0.2 rounded bg-slate-500 text-white text-[9px] font-bold">Nghỉ</span>` :
+                      (rec.lateMinutes > 0 ? `<span class="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-bold">-${rec.lateMinutes}p</span>` : '')}
                   </div>
                 </div>
-                <div class="font-bold text-[11px] text-slate-900 truncate leading-tight mt-0.5 ${!rec.hasClass ? 'line-through text-slate-500' : ''}">
-                  ${escapeHtml(c.name || c.subject)}
-                </div>
-                ${heightPx >= 64 ? studentNamesLine : ''}
+                <div class="font-bold text-[11px] text-slate-900 truncate mt-0.5 ${!rec.hasClass ? 'line-through text-slate-500' : ''}">${escapeHtml(c.name)}</div>
+                ${showStudentNames ? `<div class="text-[10px] text-indigo-800 font-medium truncate">👤 ${escapeHtml(studentsArr.join(', '))}</div>` : ''}
               </div>
-              <div class="flex items-center justify-between gap-1 text-[10px] text-slate-600 leading-none pt-0.5">
-                <span class="truncate">${escapeHtml(displayTeacher)}</span>
-                <span class="shrink-0 font-bold px-1 py-0.2 rounded bg-white/80 text-slate-700 border border-slate-200/70">🎓 ${studentBadgeText}</span>
+              <div class="flex items-center justify-between gap-1 text-[10px] pt-0.5">
+                <span class="text-slate-600 truncate">${escapeHtml(teacherDisplay)}</span>
+                <span class="px-1.5 py-0.2 rounded bg-white/90 border border-slate-200/80 font-bold text-slate-700 shrink-0">🎓 ${hvBadge}</span>
               </div>
             </div>
           `;
         }).join('');
 
         return `
-          <div onclick="onGridColumnClick(event, '${escapeHtml(room.name)}', ${START_MIN}, ${PX_PER_MIN})"
-            class="relative border-r border-slate-200 last:border-r-0 hover:bg-indigo-50/15 transition cursor-pointer">
-            ${cardsHtml}
+          <div class="flex-1 min-w-[115px] border-r border-slate-200 last:border-r-0 relative" style="height:${totalHeight}px">
+            ${hourLines}
+            ${elapsedOverlay}
+            ${blocksHtml}
           </div>
         `;
       }).join('');
 
       document.getElementById('timetable-grid').innerHTML = `
-        ${headerHtml}
-        <div class="flex relative" style="height: ${TOTAL_HEIGHT}px;">
-          <!-- Trục giờ cố định bên trái -->
-          <div class="w-16 shrink-0 border-r border-slate-200 bg-white sticky left-0 z-20 relative">
-            ${timeAxisHtml}
-            ${showNowLine ? `
-              <div style="top: ${nowTopPx - 9}px;" class="absolute right-0.5 px-1 py-0.2 rounded bg-rose-600 text-white text-[10px] font-extrabold shadow-xs z-30">
-                ${nowLabel}
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Khu vực các phòng học -->
-          <div class="flex-1 relative">
-            ${showNowLine ? `
-              <!-- Đổ màu phần nền bảng đã trôi qua (z-0, dưới các khối lớp học z-10) -->
-              <div style="top: 0; height: ${nowTopPx}px;" class="absolute left-0 right-0 bg-slate-200/45 pointer-events-none z-0"></div>
-              <!-- Vạch ngang thời gian thực -->
-              <div style="top: ${nowTopPx}px;" class="absolute left-0 right-0 border-t-2 border-rose-500 pointer-events-none z-15 flex items-center">
-                <span class="w-2 h-2 rounded-full bg-rose-600 -ml-1"></span>
-              </div>
-            ` : ''}
-            ${horizontalLinesHtml}
-            <div class="grid h-full relative" style="grid-template-columns: repeat(${Math.max(rooms.length, 1)}, minmax(125px, 1fr));">
-              ${roomColsHtml}
+        <div class="flex bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
+          <div class="w-14 shrink-0 py-2 text-center text-[11px] font-bold text-slate-500 border-r border-slate-200 bg-slate-50 sticky left-0 z-30">GIỜ</div>
+          ${roomsToShow.map(r => `
+            <div class="flex-1 min-w-[115px] py-2 px-1.5 text-center border-r border-slate-200 last:border-r-0">
+              <div class="font-bold text-xs text-slate-900 truncate">${escapeHtml(r.name)}</div>
+              <div class="text-[10px] text-slate-400 truncate">${escapeHtml(r.subjects || r.floor)}</div>
             </div>
+          `).join('')}
+        </div>
+        <div class="flex relative">
+          <div class="w-14 shrink-0 border-r border-slate-200 bg-white sticky left-0 z-20 relative" style="height:${totalHeight}px">
+            ${timeAxisHtml}
+          </div>
+          <div class="flex flex-1">
+            ${roomColsHtml}
           </div>
         </div>
       `;
     }
 
-    function onGridColumnClick(e, roomName, startMin, pxPerMin) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const offsetY = e.clientY - rect.top;
-      const clickedMin = startMin + Math.floor(offsetY / pxPerMin / 30) * 30;
-      const sTime = minutesToTime(Math.max(8 * 60, Math.min(21 * 60, clickedMin)));
-      const eTime = minutesToTime(Math.min(22 * 60, timeToMinutes(sTime) + 60));
-      openClassForm(null, { day: state.selectedDay, room: roomName, start: sTime, end: eTime });
-    }
-
-    // -------------------------------------------------------------------------
-    // 6. DANH SÁCH LỌC CA HỌC (CHỌN NHIỀU / XÓA HÀNG LOẠT)
-    // -------------------------------------------------------------------------
     function renderScheduleList() {
-      const dateStr = state.workingDate;
-      const rows = getFilteredClasses().sort((a, b) => {
+      const rows = getFilteredScheduleClasses().sort((a, b) => {
         const dDiff = DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day);
         return dDiff !== 0 ? dDiff : a.start.localeCompare(b.start);
       });
 
       const tbody = document.getElementById('schedule-list-body');
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center text-slate-400 text-xs">Không có ca học nào phù hợp bộ lọc hiện tại.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-xs text-slate-400">Không có ca học nào phù hợp bộ lọc.</td></tr>`;
         updateClassBulkUI([]);
         return;
       }
 
       tbody.innerHTML = rows.map(c => {
         const st = getSubjectStyle(c.subject);
-        const targetDate = getTargetDateForDay(dateStr, c.day);
-        const isExactDay = targetDate === dateStr;
+        const targetDate = getTargetDateForDay(state.workingDate, c.day);
         const rec = getAttRecord(targetDate, c);
+        const isExactDay = getDayNameFromDate(state.workingDate) === c.day;
         const checked = isExactDay && isRecordChecked(rec);
         const isSel = selectedClassIds.has(c.id);
         const teacherObj = state.teachers.find(t => t.name === c.teacher);
-        const displayTeacher = rec.isSubstitute && rec.substituteTeacher ? `${rec.substituteTeacher} (Thay)` : c.teacher;
         const studentsArr = Array.isArray(c.students) ? c.students : [];
-        const arrivedCnt = isExactDay ? studentsArr.filter(sn => rec.studentStatus[sn]?.arrived).length : 0;
+        const presentCnt = (rec.presentStudents || []).length;
 
         return `
-          <tr class="hover:bg-slate-50/80 transition ${isSel ? 'bg-indigo-50/60' : ''}">
+          <tr class="hover:bg-slate-50/80 ${isSel ? 'bg-indigo-50/60' : ''}">
             <td class="py-2.5 px-3 text-center">
               <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSingleClassCheck('${c.id}', this.checked)" class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
             </td>
@@ -1399,36 +1402,36 @@
               <div class="font-bold text-slate-900 text-xs">${escapeHtml(c.day)}</div>
               <div class="text-[11px] text-slate-500">${rec.actualStart || c.start} – ${rec.actualEnd || c.end}</div>
             </td>
-            <td class="py-2.5 px-4 font-semibold text-slate-800 text-xs">${escapeHtml(c.room)}</td>
+            <td class="py-2.5 px-4 text-xs font-medium text-slate-800">${escapeHtml(c.room)}</td>
             <td class="py-2.5 px-4">
-              <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="flex items-center gap-1.5">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold ${st.badge}">${escapeHtml(c.subject)}</span>
                 <span class="font-bold text-slate-900 text-xs">${escapeHtml(c.name)}</span>
               </div>
             </td>
             <td class="py-2.5 px-4">
-              <div class="font-semibold text-slate-900 text-xs">${escapeHtml(displayTeacher)}</div>
+              <div class="font-semibold text-slate-900 text-xs">${escapeHtml(rec.isSubstitute && rec.substituteTeacher ? `${rec.substituteTeacher} (Thay)` : c.teacher)}</div>
               <div class="text-[11px] text-slate-400">${escapeHtml(teacherObj?.phone || 'Chưa có SĐT')}</div>
             </td>
             <td class="py-2.5 px-4">
-              <div class="font-bold text-indigo-600 text-xs">${arrivedCnt}/${studentsArr.length} HV</div>
-              <div class="text-[11px] text-slate-500 truncate max-w-[160px]">${escapeHtml(studentsArr.join(', ') || 'Chưa gán HV')}</div>
+              <div class="font-bold text-indigo-600 text-xs">${presentCnt}/${studentsArr.length} HV</div>
+              <div class="text-[11px] text-slate-500 truncate max-w-[180px]">${escapeHtml(studentsArr.join(', ') || 'Chưa gán HV')}</div>
             </td>
             <td class="py-2.5 px-4">
               ${rec.hasClass
-                ? `<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold text-[11px]">Có học</span>`
-                : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 font-semibold text-[11px]">Nghỉ</span>`}
+                ? `<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">Có học</span>`
+                : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-semibold">Nghỉ</span>`}
             </td>
             <td class="py-2.5 px-4">
               <div class="flex items-center gap-1 flex-wrap">
-                <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold text-[11px]">${escapeHtml(c.type)}</span>
+                <span class="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[11px] font-semibold">${escapeHtml(c.type)}</span>
                 ${checked
-                  ? `<span class="px-2 py-0.5 rounded bg-emerald-500 text-white font-bold text-[11px]">✓ Đã check</span>`
-                  : `<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 font-semibold text-[11px]">${escapeHtml(c.status)}</span>`}
+                  ? `<span class="px-2 py-0.5 rounded bg-emerald-500 text-white text-[11px] font-bold">✓ Đã check</span>`
+                  : `<span class="px-2 py-0.5 rounded bg-teal-50 text-teal-700 text-[11px] font-semibold">${escapeHtml(c.status)}</span>`}
               </div>
             </td>
             <td class="py-2.5 px-4 text-right">
-              <button onclick="openClassDetail('${c.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs transition cursor-pointer">
+              <button onclick="openClassDetail('${c.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold cursor-pointer">
                 Điểm danh
               </button>
             </td>
@@ -1446,7 +1449,8 @@
     }
 
     function toggleMasterClassCheck(checked) {
-      getFilteredClasses().forEach(c => {
+      const visible = getFilteredScheduleClasses();
+      visible.forEach(c => {
         if (checked) selectedClassIds.add(c.id);
         else selectedClassIds.delete(c.id);
       });
@@ -1454,7 +1458,7 @@
     }
 
     function selectAllFilteredClasses() {
-      getFilteredClasses().forEach(c => selectedClassIds.add(c.id));
+      getFilteredScheduleClasses().forEach(c => selectedClassIds.add(c.id));
       renderScheduleList();
     }
 
@@ -1469,19 +1473,19 @@
       document.getElementById('btn-bulk-delete-classes').disabled = cnt === 0;
       const master = document.getElementById('class-master-checkbox');
       if (master) {
-        master.checked = visibleRows.length > 0 && visibleRows.every(r => selectedClassIds.has(r.id));
+        master.checked = visibleRows.length > 0 && visibleRows.every(c => selectedClassIds.has(c.id));
       }
     }
 
     function confirmBulkDeleteClasses() {
-      const ids = Array.from(selectedClassIds);
-      if (!ids.length) return;
+      const cnt = selectedClassIds.size;
+      if (!cnt) return;
       openModal(
-        '🗑️ Xác nhận xóa nhiều ca học',
-        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa <strong>${ids.length} ca học</strong> đã chọn khỏi lịch đào tạo không? Số ca trên từng phòng học sẽ tự động cập nhật lại.</p>`,
+        '🗑️ Xác nhận xóa ca học hàng loạt',
+        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa <strong>${cnt} ca học</strong> đã chọn khỏi lịch không?</p>`,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="executeBulkDeleteClasses()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ${ids.length} ca học</button>
+          <button onclick="executeBulkDeleteClasses()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ${cnt} ca học</button>
         `,
         'max-w-md'
       );
@@ -1490,14 +1494,7 @@
     function executeBulkDeleteClasses() {
       const ids = new Set(selectedClassIds);
       state.classes = state.classes.filter(c => !ids.has(c.id));
-      Object.keys(state.attendance).forEach(k => {
-        const cid = k.split('_')[1];
-        if (ids.has(cid)) delete state.attendance[k];
-      });
-      if (state.classes.length === 0) {
-        state.userClearedSchedule = true;
-        purgeLegacySchedulesOnClear();
-      }
+      if (state.classes.length === 0) state.userClearedSchedule = true;
       selectedClassIds.clear();
       saveState();
       closeModal();
@@ -1507,16 +1504,12 @@
     }
 
     function confirmDeleteAllClasses() {
-      if (!state.classes.length) {
-        showToast('Lịch hiện tại đang trống!', 'warn');
-        return;
-      }
       openModal(
         '🧹 Xóa toàn bộ ca học cả tuần',
-        `<p class="text-slate-700">Thao tác này sẽ xóa sạch toàn bộ <strong>${state.classes.length} ca học</strong> từ Thứ 2 đến Chủ nhật để bạn xếp lịch mới từ đầu. Tất cả phòng học sẽ cập nhật về trạng thái <strong>Chưa có ca học</strong>.</p>`,
+        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa <strong>toàn bộ ${state.classes.length} ca học</strong> từ Thứ 2 đến Chủ nhật không? (Danh sách phòng học, giáo viên và học viên vẫn giữ nguyên).</p>`,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="executeDeleteAllClasses()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa sạch toàn bộ lịch</button>
+          <button onclick="executeDeleteAllClasses()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa sạch lịch cả tuần</button>
         `,
         'max-w-md'
       );
@@ -1526,87 +1519,83 @@
       state.classes = [];
       state.attendance = {};
       state.userClearedSchedule = true;
-      purgeLegacySchedulesOnClear();
       selectedClassIds.clear();
+      // Dọn các bản lưu tự động cũ để không bị nạp lại khi tải trang
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k !== REGISTRY_STORAGE_KEY && k !== getBranchKey(branchRegistry.activeBranchId)) {
+          localStorage.removeItem(k);
+        }
+      }
       saveState();
       closeModal();
       renderSchedule();
       refreshAlertCenter();
-      showToast('Đã xóa sạch toàn bộ ca học!');
+      showToast('Đã xóa sạch toàn bộ ca học cả tuần!');
     }
 
     // -------------------------------------------------------------------------
-    // 7. CHI TIẾT CA HỌC & ĐIỂM DANH ĐẾN LỚP / RA VỀ TRỰC TIẾP
+    // 7. CHI TIẾT CA HỌC & ĐIỂM DANH HỌC VIÊN (ĐẾN LỚP & RA VỀ / PHỤ HUYNH ĐÓN)
     // -------------------------------------------------------------------------
-    function ensureStudentsInDirectory(names, defaultPhone = '') {
-      let addedCount = 0;
-      names.forEach(rawName => {
-        const cleanName = (rawName || '').trim();
-        if (!cleanName) return;
-        const exists = state.students.some(s => s.name.toLowerCase() === cleanName.toLowerCase());
-        if (!exists) {
-          const nextNum = state.students.length + 1 + addedCount;
-          state.students.push({
-            id: 'HV' + String(nextNum).padStart(3, '0'),
-            name: cleanName,
-            phone: defaultPhone,
-            dob: '',
-            courseNote: ''
-          });
-          addedCount++;
-        }
-      });
-      return addedCount;
-    }
-
     function openClassDetail(classId) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
-      const workingDateStr = state.workingDate;
-      const workingDayName = getDayNameFromDate(workingDateStr);
-      const isExactDay = workingDayName === c.day;
-      const targetDate = getTargetDateForDay(workingDateStr, c.day);
-      const rec = getAttRecord(targetDate, c);
       const st = getSubjectStyle(c.subject);
+      const workingDayName = getDayNameFromDate(state.workingDate);
+      const isExactWorkingDay = workingDayName === c.day;
+      const targetDate = getTargetDateForDay(state.workingDate, c.day);
+      const rec = getAttRecord(targetDate, c);
+
       const teacherObj = state.teachers.find(t => t.name === c.teacher);
+      const teacherPhone = teacherObj?.phone || '';
       const studentsArr = Array.isArray(c.students) ? c.students : [];
+
+      const otherTeachersOpts = state.teachers
+        .filter(t => t.name !== c.teacher)
+        .map(t => `<option value="${escapeHtml(t.name)}" ${rec.substituteTeacher === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`)
+        .join('');
 
       const studentRowsHtml = studentsArr.length
         ? studentsArr.map((stName, idx) => {
-            const stInfo = state.students.find(s => s.name.toLowerCase() === stName.toLowerCase());
-            const statusObj = rec.studentStatus[stName] || { arrived: false, departureType: '', pickupBy: '' };
-            const isArrived = isExactDay && Boolean(statusObj.arrived);
-            const isSelf = isExactDay && statusObj.departureType === 'self';
-            const isPickup = isExactDay && statusObj.departureType === 'pickup';
+            const stObj = state.students.find(s => s.name.toLowerCase() === stName.toLowerCase());
+            const stInfo = rec.studentStatus[stName] || {
+              arrived: rec.presentStudents.includes(stName),
+              departureType: '',
+              pickupBy: ''
+            };
+            const arrived = Boolean(stInfo.arrived);
+            const isSelf = stInfo.departureType === 'self';
+            const isPickup = stInfo.departureType === 'pickup';
 
             return `
-              <tr class="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
-                <td class="py-2.5 px-2.5 text-center text-slate-400 font-semibold">${idx + 1}</td>
-                <td class="py-2.5 px-2.5">
-                  <div class="font-bold text-slate-900 text-xs">${escapeHtml(stName)}</div>
-                  <div class="text-[11px] text-slate-500">📞 ${escapeHtml(stInfo?.phone || 'Chưa có SĐT')}</div>
+              <tr class="border-t border-slate-100 hover:bg-slate-50/70">
+                <td class="py-2.5 px-3 text-center text-slate-400 font-semibold">${idx + 1}</td>
+                <td class="py-2.5 px-3">
+                  <div class="font-bold text-slate-900">${escapeHtml(stName)}</div>
+                  <div class="text-[11px] text-slate-500">📞 ${escapeHtml(stObj?.phone || 'Chưa có SĐT')}</div>
                 </td>
-                <td class="py-2.5 px-2.5">
-                  <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${!isExactDay ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} transition ${isArrived ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-white border-slate-200 text-slate-600'}">
-                    <input type="checkbox" class="att-st-arrived w-4 h-4 accent-emerald-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isArrived ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''}
-                      onchange="onArrivedCheckboxChange(this)" />
-                    <span class="text-xs">${isArrived ? 'Có đến lớp' : 'Chưa đến'}</span>
+                <td class="py-2.5 px-3">
+                  <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${arrived ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-white border-slate-200 text-slate-600'} ${!isExactWorkingDay ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}">
+                    <input type="checkbox" id="cd-arrived-${idx}" data-student="${escapeHtml(stName)}" ${arrived ? 'checked' : ''} ${!isExactWorkingDay ? 'disabled' : ''}
+                      onchange="onStudentArrivedToggle(this)" class="w-4 h-4 rounded accent-emerald-600" />
+                    <span>${arrived ? 'Có đến lớp' : 'Chưa đến'}</span>
                   </label>
                 </td>
-                <td class="py-2.5 px-2.5">
-                  <div class="flex flex-wrap items-center gap-2 text-xs ${!isExactDay ? 'opacity-50 pointer-events-none' : ''}">
-                    <label class="inline-flex items-center gap-1 cursor-pointer select-none">
-                      <input type="checkbox" class="att-st-self w-3.5 h-3.5 accent-indigo-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isSelf ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''}
-                        onchange="onDepartureSelfChange(this)" />
+                <td class="py-2.5 px-3">
+                  <div class="flex flex-wrap items-center gap-2 text-xs ${!isExactWorkingDay ? 'opacity-50 pointer-events-none' : ''}">
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" id="cd-self-${idx}" ${isSelf ? 'checked' : ''} ${!isExactWorkingDay ? 'disabled' : ''}
+                        onchange="onDepartureToggle(${idx}, 'self', this.checked)" class="w-4 h-4 rounded accent-indigo-600" />
                       <span>Tự về</span>
                     </label>
-                    <label class="inline-flex items-center gap-1 cursor-pointer select-none">
-                      <input type="checkbox" class="att-st-pickup w-3.5 h-3.5 accent-amber-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isPickup ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''}
-                        onchange="onDeparturePickupChange(this)" />
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                      <input type="checkbox" id="cd-pickup-${idx}" ${isPickup ? 'checked' : ''} ${!isExactWorkingDay ? 'disabled' : ''}
+                        onchange="onDepartureToggle(${idx}, 'pickup', this.checked)" class="w-4 h-4 rounded accent-indigo-600" />
                       <span>Phụ huynh</span>
-                      <input type="text" class="att-st-pickup-name w-24 border-b border-dashed border-slate-400 focus:border-indigo-600 focus:outline-none text-center bg-transparent text-xs font-medium text-slate-800"
-                        data-student="${escapeHtml(stName)}" placeholder="..." value="${escapeHtml(isExactDay ? (statusObj.pickupBy || '') : '')}" ${!isExactDay ? 'disabled' : ''}
-                        oninput="onPickupNameInput(this)" />
+                      <input type="text" id="cd-pickup-name-${idx}" value="${escapeHtml(stInfo.pickupBy || '')}" placeholder="..."
+                        ${!isExactWorkingDay ? 'disabled' : ''}
+                        oninput="onPickupNameInput(${idx}, this.value)"
+                        class="w-20 px-1.5 py-0.5 text-center border-b border-dashed border-slate-400 bg-transparent focus:outline-none focus:border-indigo-600 text-xs font-semibold text-indigo-800" />
                       <span>đón</span>
                     </label>
                   </div>
@@ -1614,245 +1603,201 @@
               </tr>
             `;
           }).join('')
-        : `<tr><td colspan="4" class="py-5 text-center text-xs text-slate-400">Chưa có học viên trong danh sách lớp này. Bạn có thể thêm nhanh bên dưới.</td></tr>`;
-
-      const otherTeachersOpts = state.teachers
-        .filter(t => t.name !== c.teacher)
-        .map(t => `<option value="${escapeHtml(t.name)}" ${rec.substituteTeacher === t.name ? 'selected' : ''}>${escapeHtml(t.name)}</option>`)
-        .join('');
-
-      const studentDatalistOpts = state.students
-        .filter(s => !studentsArr.includes(s.name))
-        .map(s => `<option value="${escapeHtml(s.name)}">`).join('');
+        : `<tr><td colspan="4" class="py-5 text-center text-slate-400 text-xs">Chưa có học viên trong danh sách lớp này. Bạn có thể thêm nhanh bên dưới.</td></tr>`;
 
       openModal(
-        `<div class="flex items-center gap-2 flex-wrap">
-          <span class="px-2 py-0.5 rounded-md text-xs font-bold ${st.badge}">${escapeHtml(c.subject)}</span>
-          <span>${escapeHtml(c.name)}</span>
-          <span class="text-xs font-normal text-slate-500">(${escapeHtml(c.day)} • ${escapeHtml(c.room)})</span>
-        </div>`,
         `
-        <div class="space-y-3.5">
-          <!-- Trạng thái có học hôm đó (luôn cho phép tích báo nghỉ trước kể cả khi đang xem thứ khác) -->
-          <label class="flex items-center gap-3 p-3 rounded-xl border ${rec.hasClass ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'} cursor-pointer">
-            <input type="checkbox" id="det-has-class" ${rec.hasClass ? 'checked' : ''} class="w-4 h-4 accent-emerald-600 cursor-pointer" />
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold ${st.badge}">${escapeHtml(c.subject)}</span>
+            <span>${escapeHtml(c.name)}</span>
+            <span class="text-xs font-normal text-slate-500">(${escapeHtml(c.day)} • ${escapeHtml(c.room)})</span>
+          </div>
+        `,
+        `
+        <div class="space-y-3.5 text-xs">
+          ${!isExactWorkingDay ? `
+            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
+              <strong>Lưu ý xem trước khác ngày:</strong> Ngày làm việc hiện tại là <strong>${formatDateVN(state.workingDate)} (${workingDayName})</strong>. Bạn đang xem lịch <strong>${escapeHtml(c.day)} (${formatDateVN(targetDate)})</strong> — có thể bỏ tích bên dưới để báo nghỉ trước cho buổi này; phần điểm danh đến lớp sẽ mở khi tới đúng ngày học.
+            </div>
+          ` : ''}
+
+          <!-- Trạng thái có học / báo nghỉ -->
+          <label class="flex items-start gap-2.5 p-3 rounded-xl border ${rec.hasClass ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-100 border-slate-300'} cursor-pointer">
+            <input type="checkbox" id="cd-has-class" ${rec.hasClass ? 'checked' : ''} class="mt-0.5 w-4 h-4 rounded accent-emerald-600" />
             <div>
-              <div class="font-bold text-slate-900 text-xs">
-                ${isExactDay
-                  ? `✅ Lớp này hôm nay CÓ HỌC (${formatDateVN(targetDate)})`
-                  : `📅 Lớp này ngày ${formatDateVN(targetDate)} (${escapeHtml(c.day)}) CÓ HỌC`}
-              </div>
-              <div class="text-[11px] ${isExactDay ? 'text-slate-500' : 'text-amber-800 font-medium'}">
-                ${isExactDay
-                  ? `Bỏ tích nếu ca học hôm nay nghỉ/hủy; tích chọn để tính ca dạy & điểm danh.`
-                  : `Đang xem trước lịch ${escapeHtml(c.day)} (Ngày làm việc hiện tại là ${formatDateVN(workingDateStr)} - ${workingDayName}). Bỏ tích ở đây nếu biết trước ca ngày ${formatDateVN(targetDate)} hủy.`}
-              </div>
+              <div class="font-bold text-slate-900">✅ Lớp này ngày ${formatDateVN(targetDate)} CÓ HỌC</div>
+              <div class="text-[11px] text-slate-500">Bỏ tích nếu ca học ngày ${formatDateVN(targetDate)} nghỉ / hủy để hiển thị nhãn Nghỉ trên lịch.</div>
             </div>
           </label>
 
-          <!-- Khung giờ thực tế -->
-          <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+          <!-- Giờ học -->
+          <div class="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-bold text-amber-900">⏰ Giờ học ngày ${formatDateVN(targetDate)} (Lịch gốc: ${c.start} – ${c.end})</span>
-              <button type="button" onclick="setExactScheduleTime('${c.start}', '${c.end}')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer">
-                ✓ Học đúng giờ này
-              </button>
+              <span class="font-bold text-amber-950">⏰ Giờ học ngày ${formatDateVN(targetDate)} (Lịch gốc: ${c.start} – ${c.end})</span>
+              <button type="button" onclick="document.getElementById('cd-start').value='${c.start}'; document.getElementById('cd-end').value='${c.end}';" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer">✓ Học đúng giờ này</button>
             </div>
-            <div class="grid grid-cols-2 gap-2.5">
+            <div class="grid grid-cols-2 gap-3">
               <div>
                 <label class="block text-[11px] text-slate-600 mb-1">Giờ bắt đầu</label>
-                <input type="time" id="det-actual-start" value="${rec.actualStart || c.start}" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-200 bg-white text-xs font-bold" />
+                <input type="time" id="cd-start" value="${rec.actualStart || c.start}" class="w-full px-3 py-1.5 rounded-xl border border-amber-200 bg-white font-bold" />
               </div>
               <div>
                 <label class="block text-[11px] text-slate-600 mb-1">Giờ kết thúc</label>
-                <input type="time" id="det-actual-end" value="${rec.actualEnd || c.end}" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-200 bg-white text-xs font-bold" />
+                <input type="time" id="cd-end" value="${rec.actualEnd || c.end}" class="w-full px-3 py-1.5 rounded-xl border border-amber-200 bg-white font-bold" />
               </div>
             </div>
           </div>
 
-          <!-- Giáo viên phụ trách -->
-          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 ${!isExactDay ? 'opacity-65' : ''}">
+          <!-- Giáo viên & Đi muộn -->
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 ${!isExactWorkingDay ? 'opacity-60 pointer-events-none' : ''}">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Giáo viên phụ trách ca dạy ${!isExactDay ? '(Mở điểm danh khi đúng ngày)' : ''}</div>
-                <div class="font-bold text-slate-900 text-sm mt-0.5 flex items-center gap-2 flex-wrap">
-                  <span>👩‍🏫 ${escapeHtml(c.teacher)}</span>
-                  <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">📞 ${escapeHtml(teacherObj?.phone || 'Chưa có SĐT')}</span>
-                </div>
+                <div class="text-[10px] font-bold uppercase text-slate-400">Giáo viên phụ trách ca dạy</div>
+                <div class="font-bold text-slate-900 text-sm mt-0.5">👩‍🏫 ${escapeHtml(c.teacher)} <span class="text-xs font-semibold text-indigo-700 ml-1">📞 ${escapeHtml(teacherPhone || 'Chưa có SĐT')}</span></div>
               </div>
               <div class="flex items-center gap-1.5">
-                <input type="text" id="det-teacher-phone" value="${escapeHtml(teacherObj?.phone || '')}" placeholder="Nhập SĐT GV..." class="w-32 px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs" />
-                <button type="button" onclick="quickSaveTeacherPhone('${escapeHtml(c.teacher)}')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-xs font-semibold cursor-pointer">Lưu SĐT</button>
+                <input type="text" id="cd-teacher-phone-inp" value="${escapeHtml(teacherPhone)}" placeholder="Nhập SĐT GV..." class="w-32 px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs" />
+                <button type="button" onclick="quickUpdateTeacherPhone('${escapeHtml(c.teacher)}')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-bold text-xs cursor-pointer">Lưu SĐT</button>
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 ${!isExactDay ? 'pointer-events-none' : ''}">
-              <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold cursor-pointer">
-                <input type="checkbox" id="det-teacher-arrived" ${isExactDay && rec.teacherArrived ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''} class="w-4 h-4 accent-emerald-600 cursor-pointer" />
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-white border-slate-200 cursor-pointer font-semibold">
+                <input type="checkbox" id="cd-gv-arrived" ${rec.teacherArrived ? 'checked' : ''} class="w-4 h-4 rounded accent-emerald-600" />
                 <span>Giáo viên đã có mặt tại lớp</span>
               </label>
-              <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold cursor-pointer">
-                <input type="checkbox" id="det-is-sub" ${rec.isSubstitute ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''} onchange="document.getElementById('det-sub-box').classList.toggle('hidden', !this.checked)" class="w-4 h-4 accent-amber-600 cursor-pointer" />
+              <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border bg-amber-50/70 border-amber-200 text-amber-900 cursor-pointer font-semibold">
+                <input type="checkbox" id="cd-is-sub" ${rec.isSubstitute ? 'checked' : ''} onchange="document.getElementById('cd-sub-box').classList.toggle('hidden', !this.checked)" class="w-4 h-4 rounded accent-amber-600" />
                 <span>↻ Có giáo viên dạy thay</span>
               </label>
             </div>
 
-            <div id="det-sub-box" class="${rec.isSubstitute ? '' : 'hidden'}">
-              <label class="block text-[11px] font-semibold text-amber-900 mb-1">Chọn giáo viên dạy thay (tự động chuyển công dạy sang GV này):</label>
-              <select id="det-sub-teacher" ${!isExactDay ? 'disabled' : ''} class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-semibold">
-                <option value="">-- Chọn giáo viên dạy thay --</option>
-                ${otherTeachersOpts}
-              </select>
+            <div id="cd-sub-box" class="${rec.isSubstitute ? '' : 'hidden'} pt-1">
+              <label class="block text-[11px] font-bold text-amber-900 mb-1">Chọn hoặc nhập tên giáo viên dạy thay</label>
+              <div class="flex gap-2">
+                <select onchange="if(this.value) document.getElementById('cd-sub-teacher').value=this.value" class="px-2.5 py-1.5 rounded-xl border border-amber-200 bg-white text-xs">
+                  <option value="">-- Chọn GV có sẵn --</option>
+                  ${otherTeachersOpts}
+                </select>
+                <input type="text" id="cd-sub-teacher" value="${escapeHtml(rec.substituteTeacher || '')}" placeholder="Hoặc gõ tên GV dạy thay..." class="flex-1 px-3 py-1.5 rounded-xl border border-amber-200 bg-white text-xs" />
+              </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 border-t border-slate-200/70 ${!isExactDay ? 'pointer-events-none' : ''}">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Số phút đi muộn</label>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Số phút đi muộn</label>
                 <div class="flex items-center gap-1.5">
-                  <input type="number" id="det-late-min" min="0" value="${isExactDay ? (rec.lateMinutes || 0) : 0}" ${!isExactDay ? 'disabled' : ''} class="w-16 px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-rose-600" />
-                  <button type="button" onclick="addLateMinutes(5)" class="px-2 py-1 rounded bg-amber-100 text-amber-800 text-[11px] font-bold cursor-pointer">+5p</button>
-                  <button type="button" onclick="addLateMinutes(10)" class="px-2 py-1 rounded bg-amber-200 text-amber-900 text-[11px] font-bold cursor-pointer">+10p</button>
-                  <button type="button" onclick="addLateMinutes(15)" class="px-2 py-1 rounded bg-rose-100 text-rose-800 text-[11px] font-bold cursor-pointer">+15p</button>
+                  <input type="number" min="0" id="cd-late-mins" value="${rec.lateMinutes || 0}" class="w-20 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white font-bold text-rose-600" />
+                  <button type="button" onclick="document.getElementById('cd-late-mins').value=5" class="px-2 py-1 rounded-lg bg-amber-100 text-amber-900 font-bold">+5p</button>
+                  <button type="button" onclick="document.getElementById('cd-late-mins').value=10" class="px-2 py-1 rounded-lg bg-amber-200 text-amber-950 font-bold">+10p</button>
+                  <button type="button" onclick="document.getElementById('cd-late-mins').value=15" class="px-2 py-1 rounded-lg bg-rose-100 text-rose-800 font-bold">+15p</button>
                 </div>
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Lý do / Ghi chú</label>
-                <input type="text" id="det-late-reason" value="${escapeHtml(rec.lateReason || '')}" placeholder="VD: Nghỉ báo trước, tắc đường..." class="w-full px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs" />
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">Lý do / Ghi chú</label>
+                <input type="text" id="cd-late-reason" value="${escapeHtml(rec.lateReason || '')}" placeholder="VD: Tắc đường, đến muộn 10 phút..." class="w-full px-3 py-1.5 rounded-xl border border-slate-200 bg-white" />
               </div>
             </div>
           </div>
 
-          <!-- Bảng Chi tiết Học viên: Đến lớp & Ra về -->
+          <!-- Bảng Chi tiết Học viên — Đến lớp & Ra về -->
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="font-bold text-slate-900 text-xs">🎓 Chi tiết Học viên — Đến lớp & Ra về (Sĩ số: ${studentsArr.length})</div>
-              ${isExactDay ? `
-                <div class="flex items-center gap-2 text-xs">
-                  <button type="button" onclick="toggleAllStudentsArrived(true)" class="text-emerald-600 hover:underline font-semibold cursor-pointer">Tích tất cả đến lớp</button>
+              <span class="font-bold text-slate-800">🎓 Chi tiết Học viên — Đến lớp & Ra về (Sĩ số: ${studentsArr.length})</span>
+              ${isExactWorkingDay ? `
+                <div class="flex items-center gap-2 text-[11px]">
+                  <button type="button" onclick="toggleAllStudentsArrivedInModal(true)" class="text-emerald-700 font-bold hover:underline cursor-pointer">Tích tất cả đến lớp</button>
                   <span class="text-slate-300">|</span>
-                  <button type="button" onclick="toggleAllStudentsArrived(false)" class="text-slate-500 hover:underline cursor-pointer">Bỏ tích tất cả</button>
+                  <button type="button" onclick="toggleAllStudentsArrivedInModal(false)" class="text-slate-500 hover:underline cursor-pointer">Bỏ tích tất cả</button>
                 </div>
-              ` : `<span class="text-[11px] text-slate-400 italic">Điểm danh đến/về chỉ mở khi chọn đúng ngày học</span>`}
+              ` : ''}
             </div>
-
-            <div class="rounded-xl border border-slate-200 overflow-x-auto bg-white">
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
               <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-500">
-                    <th class="py-2 px-2.5 text-center w-10">STT</th>
-                    <th class="py-2 px-2.5">Học viên (Tên - SĐT)</th>
-                    <th class="py-2 px-2.5">Đến lớp</th>
-                    <th class="py-2 px-2.5">Ra về</th>
+                <thead class="bg-slate-50 text-[11px] uppercase text-slate-500">
+                  <tr>
+                    <th class="py-2 px-3 w-10 text-center">STT</th>
+                    <th class="py-2 px-3">Học viên (Tên - SĐT)</th>
+                    <th class="py-2 px-3">Đến lớp</th>
+                    <th class="py-2 px-3">Ra về</th>
                   </tr>
                 </thead>
-                <tbody>
-                  ${studentRowsHtml}
-                </tbody>
+                <tbody>${studentRowsHtml}</tbody>
               </table>
             </div>
+          </div>
 
-            <!-- Thêm nhanh học viên vào lớp (tự động lưu vào danh bạ nếu mới) -->
-            <div class="p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-200/80 space-y-1.5">
-              <div class="text-[11px] font-bold text-indigo-900">+ Thêm nhanh học viên vào lớp (Tự động lưu vào danh bạ nếu là học viên mới):</div>
-              <div class="flex flex-wrap sm:flex-nowrap items-center gap-1.5">
-                <input type="text" id="quick-add-st-name" list="students-quick-datalist" placeholder="Nhập tên HV mới hoặc chọn có sẵn..."
-                  onkeydown="if(event.key==='Enter'){ event.preventDefault(); quickAddStudentToClass('${c.id}'); }"
-                  class="flex-1 min-w-[160px] px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-white text-xs" />
-                <datalist id="students-quick-datalist">${studentDatalistOpts}</datalist>
-                <input type="text" id="quick-add-st-phone" placeholder="SĐT (nếu HV mới)..."
-                  onkeydown="if(event.key==='Enter'){ event.preventDefault(); quickAddStudentToClass('${c.id}'); }"
-                  class="w-36 px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-white text-xs" />
-                <button type="button" onclick="quickAddStudentToClass('${c.id}')" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer shrink-0">
-                  + Thêm
-                </button>
-              </div>
+          <!-- Thêm nhanh học viên vào lớp -->
+          <div class="p-3 rounded-xl bg-indigo-50/60 border border-indigo-200/80 space-y-2">
+            <div class="font-bold text-indigo-950">+ Thêm nhanh học viên vào lớp (Tự động lưu vào danh bạ nếu là học viên mới):</div>
+            <div class="flex flex-wrap items-center gap-2">
+              <input type="text" id="cd-quick-st-name" list="all-students-datalist" placeholder="Nhập tên HV mới hoặc chọn có sẵn..."
+                onkeydown="if(event.key==='Enter'){ event.preventDefault(); quickAddStudentToClass('${c.id}'); }"
+                class="flex-1 min-w-[180px] px-3 py-1.5 rounded-xl border border-indigo-200 bg-white text-xs" />
+              <datalist id="all-students-datalist">
+                ${state.students.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.phone || '')}</option>`).join('')}
+              </datalist>
+              <input type="text" id="cd-quick-st-phone" placeholder="SĐT (nếu HV mới)..."
+                onkeydown="if(event.key==='Enter'){ event.preventDefault(); quickAddStudentToClass('${c.id}'); }"
+                class="w-36 px-3 py-1.5 rounded-xl border border-indigo-200 bg-white text-xs" />
+              <button type="button" onclick="quickAddStudentToClass('${c.id}')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs cursor-pointer">+ Thêm</button>
             </div>
           </div>
         </div>
         `,
         `
-        <div class="w-full flex flex-wrap items-center justify-between gap-2">
-          <button type="button" onclick="confirmDeleteSingleClass('${c.id}')" class="px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 text-xs font-bold cursor-pointer">
-            🗑️ Xóa ca
-          </button>
-          <div class="flex items-center gap-2">
-            <button type="button" onclick="openClassForm('${c.id}')" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer">
-              ✏️ Sửa lịch / phòng
-            </button>
-            <button type="button" onclick="saveClassDetail('${c.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer">
-              ${isExactDay ? '💾 Lưu điểm danh' : '💾 Lưu trạng thái ca'}
-            </button>
+          <div class="w-full flex flex-wrap items-center justify-between gap-2">
+            <button type="button" onclick="confirmDeleteSingleClass('${c.id}')" class="px-3 py-2 rounded-xl hover:bg-rose-50 text-rose-600 text-xs font-bold cursor-pointer">🗑️ Xóa ca</button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="openClassForm('${c.id}')" class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer">✏️ Sửa lịch / phòng</button>
+              <button type="button" onclick="saveClassDetail('${c.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer">💾 Lưu điểm danh</button>
+            </div>
           </div>
-        </div>
         `,
-        'max-w-3xl'
+        'max-w-2xl'
       );
     }
 
-    function onArrivedCheckboxChange(cb) {
-      const labelSpan = cb.parentElement.querySelector('span');
-      if (cb.checked) {
-        cb.parentElement.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border cursor-pointer transition bg-emerald-50 border-emerald-300 text-emerald-800 font-bold';
-        if (labelSpan) labelSpan.textContent = 'Có đến lớp';
+    function onStudentArrivedToggle(chk) {
+      const label = chk.closest('label');
+      const span = label?.querySelector('span');
+      if (chk.checked) {
+        label.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-emerald-50 border-emerald-300 text-emerald-800 font-bold cursor-pointer';
+        if (span) span.textContent = 'Có đến lớp';
       } else {
-        cb.parentElement.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border cursor-pointer transition bg-white border-slate-200 text-slate-600';
-        if (labelSpan) labelSpan.textContent = 'Chưa đến';
+        label.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-white border-slate-200 text-slate-600 cursor-pointer';
+        if (span) span.textContent = 'Chưa đến';
       }
     }
 
-    function onDepartureSelfChange(cb) {
-      const stName = cb.dataset.student;
-      if (cb.checked) {
-        document.querySelectorAll('.att-st-pickup').forEach(el => {
-          if (el.dataset.student === stName) el.checked = false;
-        });
+    function onDepartureToggle(idx, type, checked) {
+      const selfChk = document.getElementById(`cd-self-${idx}`);
+      const pickupChk = document.getElementById(`cd-pickup-${idx}`);
+      if (type === 'self' && checked && pickupChk) pickupChk.checked = false;
+      if (type === 'pickup' && checked && selfChk) selfChk.checked = false;
+    }
+
+    function onPickupNameInput(idx, val) {
+      const pickupChk = document.getElementById(`cd-pickup-${idx}`);
+      const selfChk = document.getElementById(`cd-self-${idx}`);
+      if (val.trim() && pickupChk) {
+        pickupChk.checked = true;
+        if (selfChk) selfChk.checked = false;
       }
     }
 
-    function onDeparturePickupChange(cb) {
-      const stName = cb.dataset.student;
-      if (cb.checked) {
-        document.querySelectorAll('.att-st-self').forEach(el => {
-          if (el.dataset.student === stName) el.checked = false;
-        });
-      }
-    }
-
-    function onPickupNameInput(inp) {
-      const stName = inp.dataset.student;
-      if (inp.value.trim()) {
-        document.querySelectorAll('.att-st-pickup').forEach(el => {
-          if (el.dataset.student === stName) el.checked = true;
-        });
-        document.querySelectorAll('.att-st-self').forEach(el => {
-          if (el.dataset.student === stName) el.checked = false;
-        });
-      }
-    }
-
-    function toggleAllStudentsArrived(val) {
-      document.querySelectorAll('.att-st-arrived').forEach(cb => {
-        cb.checked = val;
-        onArrivedCheckboxChange(cb);
+    function toggleAllStudentsArrivedInModal(checked) {
+      document.querySelectorAll('[id^="cd-arrived-"]').forEach(chk => {
+        chk.checked = checked;
+        onStudentArrivedToggle(chk);
       });
     }
 
-    function setExactScheduleTime(s, e) {
-      document.getElementById('det-actual-start').value = s;
-      document.getElementById('det-actual-end').value = e;
-      showToast('Đã đặt lại đúng khung giờ gốc!');
-    }
-
-    function addLateMinutes(mins) {
-      const inp = document.getElementById('det-late-min');
-      inp.value = (parseInt(inp.value, 10) || 0) + mins;
-    }
-
-    function quickSaveTeacherPhone(teacherName) {
-      const phone = (document.getElementById('det-teacher-phone').value || '').trim();
-      let t = state.teachers.find(x => x.name === teacherName);
-      if (t) {
-        t.phone = phone;
+    function quickUpdateTeacherPhone(teacherName) {
+      const phone = (document.getElementById('cd-teacher-phone-inp')?.value || '').trim();
+      let tObj = state.teachers.find(t => t.name === teacherName);
+      if (tObj) {
+        tObj.phone = phone;
       } else {
         state.teachers.push({
           id: 'GV' + String(state.teachers.length + 1).padStart(3, '0'),
@@ -1869,62 +1814,60 @@
     function quickAddStudentToClass(classId) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
-      const nameInp = document.getElementById('quick-add-st-name');
-      const phoneInp = document.getElementById('quick-add-st-phone');
-      const name = (nameInp.value || '').trim();
-      const phone = (phoneInp.value || '').trim();
-      if (!name) {
-        showToast('Vui lòng nhập tên học viên!', 'warn');
-        return;
-      }
+      const rawName = (document.getElementById('cd-quick-st-name')?.value || '').trim();
+      const rawPhone = (document.getElementById('cd-quick-st-phone')?.value || '').trim();
+      if (!rawName) return;
+
+      const parsed = parseNameAndPhone(rawName);
+      const finalName = parsed.name;
+      const finalPhone = rawPhone || parsed.phone || '';
+
+      ensureStudentsInDirectory([finalName], finalPhone);
       if (!Array.isArray(c.students)) c.students = [];
-      if (!c.students.some(s => s.toLowerCase() === name.toLowerCase())) {
-        c.students.push(name);
+      if (!c.students.some(s => s.toLowerCase() === finalName.toLowerCase())) {
+        c.students.push(finalName);
       }
-      const added = ensureStudentsInDirectory([name], phone);
+
       saveState();
       openClassDetail(classId);
-      showToast(added ? `Đã thêm "${name}" vào lớp và danh bạ Học viên!` : `Đã thêm "${name}" vào lớp!`);
+      renderSchedule();
+      showToast(`Đã thêm ${finalName} vào lớp & danh bạ!`);
     }
 
     function saveClassDetail(classId) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
-      const workingDateStr = state.workingDate;
-      const isExactDay = getDayNameFromDate(workingDateStr) === c.day;
-      const targetDate = getTargetDateForDay(workingDateStr, c.day);
+      const workingDayName = getDayNameFromDate(state.workingDate);
+      const isExactWorkingDay = workingDayName === c.day;
+      const targetDate = getTargetDateForDay(state.workingDate, c.day);
       const rec = getAttRecord(targetDate, c);
 
-      rec.hasClass = document.getElementById('det-has-class').checked;
-      rec.actualStart = document.getElementById('det-actual-start').value || c.start;
-      rec.actualEnd = document.getElementById('det-actual-end').value || c.end;
-      rec.lateReason = (document.getElementById('det-late-reason').value || '').trim();
+      rec.hasClass = document.getElementById('cd-has-class').checked;
+      rec.actualStart = document.getElementById('cd-start').value || c.start;
+      rec.actualEnd = document.getElementById('cd-end').value || c.end;
 
-      if (isExactDay) {
-        rec.timeConfirmed = rec.hasClass;
-        rec.teacherArrived = document.getElementById('det-teacher-arrived').checked;
-        rec.isSubstitute = document.getElementById('det-is-sub').checked;
-        rec.substituteTeacher = rec.isSubstitute ? document.getElementById('det-sub-teacher').value : '';
-        rec.lateMinutes = parseInt(document.getElementById('det-late-min').value, 10) || 0;
+      if (isExactWorkingDay) {
+        rec.checked = true;
+        rec.timeConfirmed = true;
+        rec.teacherArrived = document.getElementById('cd-gv-arrived').checked;
+        rec.isSubstitute = document.getElementById('cd-is-sub').checked;
+        rec.substituteTeacher = (document.getElementById('cd-sub-teacher')?.value || '').trim();
+        rec.lateMinutes = Math.max(0, parseInt(document.getElementById('cd-late-mins')?.value || '0', 10) || 0);
+        rec.lateReason = (document.getElementById('cd-late-reason')?.value || '').trim();
 
+        const studentsArr = Array.isArray(c.students) ? c.students : [];
         const presentList = [];
-        document.querySelectorAll('.att-st-arrived').forEach(cb => {
-          const stName = cb.dataset.student;
-          const arrived = cb.checked;
+        studentsArr.forEach((stName, idx) => {
+          const arrived = Boolean(document.getElementById(`cd-arrived-${idx}`)?.checked);
+          const isSelf = Boolean(document.getElementById(`cd-self-${idx}`)?.checked);
+          const isPickup = Boolean(document.getElementById(`cd-pickup-${idx}`)?.checked);
+          const pickupBy = (document.getElementById(`cd-pickup-name-${idx}`)?.value || '').trim();
+
           if (arrived) presentList.push(stName);
-
-          const selfCb = Array.from(document.querySelectorAll('.att-st-self')).find(x => x.dataset.student === stName);
-          const pickupCb = Array.from(document.querySelectorAll('.att-st-pickup')).find(x => x.dataset.student === stName);
-          const pickupInp = Array.from(document.querySelectorAll('.att-st-pickup-name')).find(x => x.dataset.student === stName);
-
-          let departureType = '';
-          if (selfCb && selfCb.checked) departureType = 'self';
-          else if (pickupCb && pickupCb.checked) departureType = 'pickup';
-
           rec.studentStatus[stName] = {
             arrived,
-            departureType,
-            pickupBy: pickupInp ? pickupInp.value.trim() : ''
+            departureType: isSelf ? 'self' : (isPickup ? 'pickup' : ''),
+            pickupBy
           };
         });
         rec.presentStudents = presentList;
@@ -1934,13 +1877,7 @@
       closeModal();
       renderSchedule();
       refreshAlertCenter();
-      if (!isExactDay) {
-        showToast(rec.hasClass
-          ? `Đã giữ lịch học ngày ${formatDateVN(targetDate)} (${c.day})!`
-          : `Đã báo nghỉ trước cho ca ngày ${formatDateVN(targetDate)} (${c.day})!`);
-      } else {
-        showToast('Đã lưu điểm danh & trạng thái học viên!');
-      }
+      showToast('Đã lưu điểm danh & cập nhật trạng thái lớp!');
     }
 
     function confirmDeleteSingleClass(classId) {
@@ -1948,10 +1885,10 @@
       if (!c) return;
       openModal(
         '🗑️ Xác nhận xóa ca học',
-        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa ca học <strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.day)} • ${c.start}–${c.end}) khỏi lịch không?</p>`,
+        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa ca <strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.day)} • ${c.start}–${c.end}) khỏi lịch không?</p>`,
         `
-          <button onclick="openClassDetail('${c.id}')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold cursor-pointer">Quay lại</button>
-          <button onclick="executeDeleteSingleClass('${c.id}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ca này</button>
+          <button onclick="openClassDetail('${classId}')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Quay lại</button>
+          <button onclick="executeDeleteSingleClass('${classId}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ca học</button>
         `,
         'max-w-md'
       );
@@ -1959,13 +1896,7 @@
 
     function executeDeleteSingleClass(classId) {
       state.classes = state.classes.filter(c => c.id !== classId);
-      Object.keys(state.attendance).forEach(k => {
-        if (k.endsWith(`_${classId}`)) delete state.attendance[k];
-      });
-      if (state.classes.length === 0) {
-        state.userClearedSchedule = true;
-        purgeLegacySchedulesOnClear();
-      }
+      if (state.classes.length === 0) state.userClearedSchedule = true;
       selectedClassIds.delete(classId);
       saveState();
       closeModal();
@@ -1975,8 +1906,148 @@
     }
 
     // -------------------------------------------------------------------------
-    // 8. FORM THÊM / SỬA CA HỌC (KIỂM TRA TRÙNG PHÒNG & TỰ LƯU HỌC VIÊN MỚI)
+    // 8. FORM THÊM / SỬA CA HỌC (CHỌN GV, TÌM HV CÓ SẴN HOẶC THÊM MỚI TÊN - SĐT)
     // -------------------------------------------------------------------------
+    let classFormStudents = [];
+
+    function parseNameAndPhone(rawStr) {
+      const text = (rawStr || '').trim();
+      if (!text) return { name: '', phone: '' };
+      const dashMatch = text.match(/^(.+?)\s*[-–—]\s*([0-9+.\s]{7,})$/);
+      if (dashMatch) {
+        return {
+          name: dashMatch[1].trim(),
+          phone: dashMatch[2].replace(/\s+/g, '').trim()
+        };
+      }
+      const trailingPhoneMatch = text.match(/^(.+?)\s+(0\d{8,10}|\+84\d{8,10})$/);
+      if (trailingPhoneMatch) {
+        return {
+          name: trailingPhoneMatch[1].trim(),
+          phone: trailingPhoneMatch[2].trim()
+        };
+      }
+      return { name: text, phone: '' };
+    }
+
+    function renderClassFormStudentChips() {
+      const box = document.getElementById('cf-student-chips');
+      if (!box) return;
+      if (!classFormStudents.length) {
+        box.innerHTML = `<span class="text-[11px] text-slate-400 italic">Chưa có học viên nào được chọn cho ca này.</span>`;
+        return;
+      }
+      box.innerHTML = classFormStudents.map((st, idx) => `
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-800 border border-indigo-200 text-xs font-semibold">
+          <span>🎓 ${escapeHtml(st.name)}${st.phone ? ` <span class="text-indigo-500 font-normal">(${escapeHtml(st.phone)})</span>` : ''}</span>
+          <button type="button" onclick="removeStudentFromClassForm(${idx})" class="w-4 h-4 rounded-full hover:bg-indigo-200 text-indigo-700 inline-flex items-center justify-center text-[10px] font-bold cursor-pointer" title="Bỏ học viên này">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function renderClassFormStudentDropdown(filterText = '') {
+      const listBox = document.getElementById('cf-student-dropdown');
+      if (!listBox) return;
+      const kw = (filterText || '').trim().toLowerCase();
+      const selectedNames = new Set(classFormStudents.map(s => s.name.toLowerCase()));
+
+      const matches = state.students.filter(s => {
+        if (selectedNames.has(s.name.toLowerCase())) return false;
+        if (!kw) return true;
+        return `${s.name} ${s.phone || ''}`.toLowerCase().includes(kw);
+      });
+
+      const parsedNew = parseNameAndPhone(filterText);
+      const exactMatch = state.students.some(s => s.name.toLowerCase() === parsedNew.name.toLowerCase());
+
+      let html = '';
+      if (parsedNew.name && !exactMatch && !selectedNames.has(parsedNew.name.toLowerCase())) {
+        html += `
+          <button type="button" onmousedown="event.preventDefault(); addStudentToClassFormFromInput()"
+            class="w-full text-left px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border-b border-emerald-200/70 flex items-center justify-between gap-2 cursor-pointer">
+            <span>➕ Thêm học viên mới: <strong>${escapeHtml(parsedNew.name)}</strong>${parsedNew.phone ? ` — 📞 <strong>${escapeHtml(parsedNew.phone)}</strong>` : ''}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-bold shrink-0">Lưu danh bạ</span>
+          </button>
+        `;
+      }
+
+      if (matches.length) {
+        html += matches.slice(0, 25).map(s => `
+          <button type="button" onmousedown="event.preventDefault(); selectExistingStudentForClassForm('${escapeHtml(s.name)}', '${escapeHtml(s.phone || '')}')"
+            class="w-full text-left px-3 py-2 hover:bg-indigo-50 text-slate-800 flex items-center justify-between gap-2 border-b border-slate-100 last:border-b-0 cursor-pointer">
+            <span class="font-semibold">🎓 ${escapeHtml(s.name)}</span>
+            <span class="text-[11px] text-slate-500">${s.phone ? `📞 ${escapeHtml(s.phone)}` : 'Chưa có SĐT'}</span>
+          </button>
+        `).join('');
+      } else if (!html) {
+        html = `<div class="px-3 py-2.5 text-[11px] text-slate-400 text-center">Không tìm thấy học viên có sẵn. Gõ <strong>Tên - SĐT</strong> rồi bấm <strong>+ Thêm</strong> để tạo mới.</div>`;
+      }
+
+      listBox.innerHTML = html;
+    }
+
+    function showClassFormStudentDropdown() {
+      const box = document.getElementById('cf-student-dropdown');
+      const inp = document.getElementById('cf-student-search-input');
+      if (!box) return;
+      renderClassFormStudentDropdown(inp ? inp.value : '');
+      box.classList.remove('hidden');
+    }
+
+    function hideClassFormStudentDropdown() {
+      const box = document.getElementById('cf-student-dropdown');
+      if (box) box.classList.add('hidden');
+    }
+
+    function selectExistingStudentForClassForm(name, phone) {
+      if (!classFormStudents.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+        classFormStudents.push({ name, phone });
+      }
+      const inp = document.getElementById('cf-student-search-input');
+      if (inp) inp.value = '';
+      renderClassFormStudentChips();
+      renderClassFormStudentDropdown('');
+    }
+
+    function addStudentToClassFormFromInput() {
+      const inp = document.getElementById('cf-student-search-input');
+      if (!inp) return;
+      const raw = (inp.value || '').trim();
+      if (!raw) return;
+
+      const items = raw.split(/[,;]/).map(x => x.trim()).filter(Boolean);
+      items.forEach(item => {
+        const parsed = parseNameAndPhone(item);
+        if (!parsed.name) return;
+        const existingInDir = state.students.find(s => s.name.toLowerCase() === parsed.name.toLowerCase());
+        const finalPhone = parsed.phone || existingInDir?.phone || '';
+        if (!classFormStudents.some(s => s.name.toLowerCase() === parsed.name.toLowerCase())) {
+          classFormStudents.push({ name: existingInDir ? existingInDir.name : parsed.name, phone: finalPhone });
+        }
+      });
+
+      inp.value = '';
+      renderClassFormStudentChips();
+      renderClassFormStudentDropdown('');
+    }
+
+    function removeStudentFromClassForm(idx) {
+      classFormStudents.splice(idx, 1);
+      renderClassFormStudentChips();
+      renderClassFormStudentDropdown(document.getElementById('cf-student-search-input')?.value || '');
+    }
+
+    function onCfTeacherSelectChange(val) {
+      const customInp = document.getElementById('cf-teacher-custom');
+      if (!customInp) return;
+      if (val === '__NEW__') {
+        customInp.classList.remove('hidden');
+        customInp.focus();
+      } else {
+        customInp.classList.add('hidden');
+      }
+    }
+
     function openClassForm(classId = null, preset = null) {
       const c = classId ? state.classes.find(x => x.id === classId) : null;
       const defDay = c?.day || preset?.day || state.selectedDay || 'Thứ 2';
@@ -1987,11 +2058,23 @@
       const defType = c?.type || 'Cá nhân';
       const defStatus = c?.status || 'Đang học';
       const defTeacher = c?.teacher || (state.teachers[0]?.name || '');
-      const defStudents = Array.isArray(c?.students) ? c.students.join(', ') : '';
+
+      classFormStudents = (Array.isArray(c?.students) ? c.students : []).map(stName => {
+        const stObj = state.students.find(s => s.name.toLowerCase() === stName.toLowerCase());
+        return { name: stName, phone: stObj?.phone || '' };
+      });
 
       const dayOpts = DAYS_ORDER.map(d => `<option value="${d}" ${d === defDay ? 'selected' : ''}>${d}</option>`).join('');
       const roomOpts = state.rooms.map(r => `<option value="${escapeHtml(r.name)}" ${r.name === defRoom ? 'selected' : ''}>${escapeHtml(r.name)}</option>`).join('');
-      const teacherListOpts = state.teachers.map(t => `<option value="${escapeHtml(t.name)}">`).join('');
+
+      const teacherExistsInList = state.teachers.some(t => t.name === defTeacher);
+      const teacherSelectOpts = [
+        `<option value="">-- Chọn giáo viên phụ trách --</option>`,
+        ...state.teachers.map(t => `<option value="${escapeHtml(t.name)}" ${t.name === defTeacher ? 'selected' : ''}>${escapeHtml(t.name)}${t.subject ? ` (${escapeHtml(t.subject)})` : ''}</option>`),
+        ...(defTeacher && !teacherExistsInList ? [`<option value="${escapeHtml(defTeacher)}" selected>${escapeHtml(defTeacher)}</option>`] : []),
+        `<option value="__NEW__">+ Nhập tên giáo viên mới...</option>`
+      ].join('');
+
       const subjectOpts = Object.keys(SUBJECT_COLORS).map(s => `<option value="${s}" ${s === defSubject ? 'selected' : ''}>${s}</option>`).join('');
 
       openModal(
@@ -2039,10 +2122,12 @@
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Giáo viên phụ trách *</label>
-              <input type="text" id="cf-teacher" list="cf-teacher-list" value="${escapeHtml(defTeacher)}" placeholder="Chọn hoặc nhập tên GV..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-              <datalist id="cf-teacher-list">${teacherListOpts}</datalist>
+            <div class="space-y-1.5">
+              <label class="block font-bold text-slate-700">Giáo viên phụ trách *</label>
+              <select id="cf-teacher-select" onchange="onCfTeacherSelectChange(this.value)" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium">
+                ${teacherSelectOpts}
+              </select>
+              <input type="text" id="cf-teacher-custom" placeholder="Nhập họ tên giáo viên mới..." class="hidden w-full px-3 py-2 rounded-xl border border-indigo-300 bg-indigo-50/40" />
             </div>
             <div>
               <label class="block font-bold text-slate-700 mb-1">Trạng thái lớp</label>
@@ -2052,9 +2137,22 @@
             </div>
           </div>
 
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Danh sách học viên (cách nhau bởi dấu phẩy — tự động lưu vào danh bạ nếu mới)</label>
-            <input type="text" id="cf-students" value="${escapeHtml(defStudents)}" placeholder="VD: Bảo An, Thùy Minh..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+          <div class="space-y-1.5">
+            <label class="block font-bold text-slate-700">Danh sách học viên (Tìm trong list có sẵn hoặc nhập mới dạng <span class="text-indigo-600">Tên - SĐT</span>)</label>
+            <div id="cf-student-chips" class="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200/80 min-h-[36px]"></div>
+            <div class="relative flex items-center gap-1.5">
+              <input type="text" id="cf-student-search-input"
+                onfocus="showClassFormStudentDropdown()"
+                oninput="showClassFormStudentDropdown()"
+                onblur="setTimeout(hideClassFormStudentDropdown, 160)"
+                onkeydown="if(event.key==='Enter'){ event.preventDefault(); addStudentToClassFormFromInput(); }"
+                placeholder="🔍 Tìm tên/SĐT học viên có sẵn hoặc gõ: Minh Anh - 0987654321"
+                class="flex-1 px-3 py-2 rounded-xl border border-slate-200 focus:border-indigo-500 focus:outline-none" />
+              <button type="button" onclick="addStudentToClassFormFromInput()" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold shrink-0 cursor-pointer">
+                + Thêm
+              </button>
+              <div id="cf-student-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-slate-200 max-h-48 overflow-y-auto z-30"></div>
+            </div>
           </div>
         </div>
         `,
@@ -2064,9 +2162,16 @@
         `,
         'max-w-xl'
       );
+
+      renderClassFormStudentChips();
     }
 
     function saveClassForm(classId) {
+      const pendingInp = document.getElementById('cf-student-search-input');
+      if (pendingInp && pendingInp.value.trim()) {
+        addStudentToClassFormFromInput();
+      }
+
       const day = document.getElementById('cf-day').value;
       const room = document.getElementById('cf-room').value;
       const start = document.getElementById('cf-start').value;
@@ -2074,9 +2179,12 @@
       const subject = document.getElementById('cf-subject').value;
       const type = document.getElementById('cf-type').value;
       const status = document.getElementById('cf-status').value;
-      const teacher = (document.getElementById('cf-teacher').value || '').trim() || 'Chưa phân công';
-      const studentsRaw = (document.getElementById('cf-students').value || '').trim();
-      const students = studentsRaw ? studentsRaw.split(/[,;]/).map(s => s.trim()).filter(Boolean) : [];
+
+      const tSelectVal = document.getElementById('cf-teacher-select').value;
+      const tCustomVal = (document.getElementById('cf-teacher-custom')?.value || '').trim();
+      const teacher = (tSelectVal === '__NEW__' ? tCustomVal : tSelectVal).trim() || 'Chưa phân công';
+
+      const students = classFormStudents.map(s => s.name);
       let name = (document.getElementById('cf-name').value || '').trim();
 
       if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) {
@@ -2088,7 +2196,15 @@
         name = `${subject} - ${type}${students.length === 1 ? ' ' + students[0] : ''}`;
       }
 
-      const newStudentsAdded = ensureStudentsInDirectory(students);
+      let newStudentsAdded = 0;
+      classFormStudents.forEach(st => {
+        const existing = state.students.find(s => s.name.toLowerCase() === st.name.toLowerCase());
+        if (!existing) {
+          newStudentsAdded += ensureStudentsInDirectory([st.name], st.phone || '');
+        } else if (st.phone && !existing.phone) {
+          existing.phone = st.phone;
+        }
+      });
 
       if (classId) {
         const idx = state.classes.findIndex(x => x.id === classId);
@@ -2159,7 +2275,6 @@
         const eMin = timeToMinutes(rec.actualEnd || c.end);
         const diff = nowMins - sMin;
 
-        // Cảnh báo trong khoảng từ 5 phút trước giờ học đến trước giờ kết thúc
         if (diff >= -5 && nowMins <= eMin) {
           const gvKey = `gv_${todayStr}_${c.id}`;
           if (!rec.teacherArrived && !dismissedAlerts[gvKey] && (!snoozedAlerts[gvKey] || snoozedAlerts[gvKey] <= Date.now())) {
@@ -2497,7 +2612,6 @@
         (h.sessions || []).forEach(s => {
           if (!s.hasClass) return;
 
-          // Thống kê giáo viên
           const tName = s.teacher || 'Chưa phân công';
           if (!teacherMap[tName]) {
             const tObj = state.teachers.find(t => t.name === tName);
@@ -2525,7 +2639,6 @@
             });
           }
 
-          // Thống kê học viên
           (s.presentStudents || []).forEach(stName => {
             if (!studentMap[stName]) {
               const stObj = state.students.find(x => x.name.toLowerCase() === stName.toLowerCase());
