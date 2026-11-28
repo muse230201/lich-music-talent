@@ -713,8 +713,20 @@
 
     function loadRegistry() {
       try {
-        const raw = localStorage.getItem(REGISTRY_KEY);
-        if (raw) branchRegistry = JSON.parse(raw);
+        const rawV2 = localStorage.getItem(REGISTRY_KEY);
+        if (rawV2) {
+          branchRegistry = JSON.parse(rawV2);
+          return;
+        }
+        // Tự động kế thừa danh sách cơ sở từ phiên bản cũ (v1) nếu có
+        const rawV1 = localStorage.getItem('mt_branches_registry_v1');
+        if (rawV1) {
+          const oldReg = JSON.parse(rawV1);
+          if (oldReg && Array.isArray(oldReg.branches) && oldReg.branches.length) {
+            branchRegistry = oldReg;
+            saveRegistry();
+          }
+        }
       } catch (e) {}
     }
 
@@ -722,24 +734,81 @@
       localStorage.setItem(REGISTRY_KEY, JSON.stringify(branchRegistry));
     }
 
+    function findLegacyBranchData(branchId) {
+      const candidateKeys = [
+        getBranchKey(branchId),
+        `mt_branch_data_v2_${branchId}`,
+        'mt_branch_data_v2_branch_default',
+        'mt_branch_data_v2_cg_main',
+        'mt_branch_state_v3_branch_default',
+        'mt_branch_state_v3_cg_main',
+        'music_talent_schedule_v1',
+        'mt_schedule_data'
+      ];
+      // Quét thêm mọi key cũ của Music Talent trong localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('mt_branch_data_') || k.startsWith('mt_branch_state_')) && !candidateKeys.includes(k)) {
+          candidateKeys.push(k);
+        }
+      }
+      for (const k of candidateKeys) {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (parsed && (Array.isArray(parsed.rooms) || Array.isArray(parsed.classes) || Array.isArray(parsed.teachers))) {
+              return parsed;
+            }
+          } catch (e) {}
+        }
+      }
+      return null;
+    }
+
+    function normalizeLegacyClass(c) {
+      // Chuẩn hóa dữ liệu ca học từ cả định dạng cũ (title, roomId, teacherId, studentIds) và định dạng mới
+      const roomObj = typeof c.room === 'string' && c.room
+        ? null
+        : state.rooms.find(r => r.id === c.roomId || r.name === c.room);
+      const teacherObj = typeof c.teacher === 'string' && c.teacher
+        ? null
+        : state.teachers.find(t => t.id === c.teacherId || t.name === c.teacher);
+      let studentNames = Array.isArray(c.students) ? c.students : [];
+      if (!studentNames.length && Array.isArray(c.studentIds)) {
+        studentNames = c.studentIds.map(sid => state.students.find(s => s.id === sid)?.name || sid).filter(Boolean);
+      }
+      return {
+        id: c.id || ('CL_' + Math.random().toString(36).slice(2, 9)),
+        day: c.day || 'Thứ 2',
+        room: c.room || roomObj?.name || (state.rooms[0]?.name || 'Phòng 401'),
+        start: c.start || '09:00',
+        end: c.end || '10:00',
+        subject: c.subject || 'Piano',
+        name: c.name || c.title || c.subject || 'Lớp học',
+        teacher: c.teacher || teacherObj?.name || 'Chưa phân công',
+        type: c.type || 'Cá nhân',
+        status: c.status || 'Đang học',
+        students: studentNames
+      };
+    }
+
     function loadBranchState() {
       const today = new Date().toISOString().slice(0, 10);
       const todayDayName = getDayNameFromDate(today);
       try {
-        const raw = localStorage.getItem(getBranchKey(branchRegistry.activeBranchId));
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          state = {
-            workingDate: parsed.workingDate || today,
-            selectedDay: parsed.selectedDay || todayDayName,
-            scheduleMode: parsed.scheduleMode || 'grid',
-            rooms: Array.isArray(parsed.rooms) && parsed.rooms.length ? parsed.rooms : JSON.parse(JSON.stringify(DEFAULT_ROOMS)),
-            teachers: Array.isArray(parsed.teachers) ? parsed.teachers : JSON.parse(JSON.stringify(DEFAULT_TEACHERS)),
-            students: Array.isArray(parsed.students) ? parsed.students : JSON.parse(JSON.stringify(DEFAULT_STUDENTS)),
-            classes: Array.isArray(parsed.classes) ? parsed.classes : JSON.parse(JSON.stringify(DEFAULT_CLASSES)),
-            attendance: parsed.attendance || {},
-            history: Array.isArray(parsed.history) ? parsed.history : []
-          };
+        const parsed = findLegacyBranchData(branchRegistry.activeBranchId);
+        if (parsed) {
+          state.workingDate = parsed.workingDate || today;
+          state.selectedDay = parsed.selectedDay || todayDayName;
+          state.scheduleMode = parsed.scheduleMode || 'grid';
+          state.rooms = Array.isArray(parsed.rooms) && parsed.rooms.length ? parsed.rooms : JSON.parse(JSON.stringify(DEFAULT_ROOMS));
+          state.teachers = Array.isArray(parsed.teachers) ? parsed.teachers : [];
+          state.students = Array.isArray(parsed.students) ? parsed.students : [];
+          state.classes = Array.isArray(parsed.classes) ? parsed.classes.map(normalizeLegacyClass) : [];
+          state.attendance = parsed.attendance || parsed.dailyLogs || {};
+          state.history = Array.isArray(parsed.history) ? parsed.history : [];
+          saveState();
         } else {
           state = {
             workingDate: today,
