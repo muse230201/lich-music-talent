@@ -685,6 +685,19 @@
       return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
     }
 
+    function getTargetDateForDay(baseDateStr, targetDayName) {
+      if (!baseDateStr || !targetDayName) return baseDateStr;
+      const baseDayName = getDayNameFromDate(baseDateStr);
+      if (baseDayName === targetDayName) return baseDateStr;
+      const dayMap = { 'Chủ nhật': 0, 'Thứ 2': 1, 'Thứ 3': 2, 'Thứ 4': 3, 'Thứ 5': 4, 'Thứ 6': 5, 'Thứ 7': 6 };
+      const baseDate = new Date(baseDateStr + 'T00:00:00');
+      const baseDow = baseDate.getDay();
+      const targetDow = dayMap[targetDayName] ?? baseDow;
+      const diff = (targetDow - baseDow + 7) % 7 || 7;
+      baseDate.setDate(baseDate.getDate() + diff);
+      return baseDate.toISOString().slice(0, 10);
+    }
+
     function timeToMinutes(t) {
       if (!t || typeof t !== 'string' || !t.includes(':')) return 0;
       const [h, m] = t.split(':').map(Number);
@@ -1033,13 +1046,13 @@
     }
 
     function updateHeaderEarliestLatest() {
-      const dateStr = state.workingDate;
       const dayClasses = state.classes.filter(c => c.day === state.selectedDay && c.status !== 'Đã hủy');
       let minStart = Infinity;
       let maxEnd = -Infinity;
 
       dayClasses.forEach(c => {
-        const rec = getAttRecord(dateStr, c);
+        const targetDate = getTargetDateForDay(state.workingDate, c.day);
+        const rec = getAttRecord(targetDate, c);
         if (!rec.hasClass) return;
         const s = timeToMinutes(rec.actualStart || c.start);
         const e = timeToMinutes(rec.actualEnd || c.end);
@@ -1052,7 +1065,6 @@
     }
 
     function getFilteredClasses() {
-      const dateStr = state.workingDate;
       const kw = (document.getElementById('filter-search').value || '').trim().toLowerCase();
       const fDay = state.scheduleMode === 'grid' ? state.selectedDay : (document.getElementById('filter-day').value || '');
       const fRoom = document.getElementById('filter-room').value;
@@ -1066,8 +1078,10 @@
         if (fTeacher && c.teacher !== fTeacher) return false;
         if (fType && c.type !== fType) return false;
 
-        const rec = getAttRecord(dateStr, c);
-        const checked = isRecordChecked(rec);
+        const targetDate = getTargetDateForDay(state.workingDate, c.day);
+        const isExactDay = targetDate === state.workingDate;
+        const rec = getAttRecord(targetDate, c);
+        const checked = isExactDay && isRecordChecked(rec);
         if (fStatus === 'CHECKED' && !checked) return false;
         if (fStatus === 'UNCHECKED' && (!rec.hasClass || checked)) return false;
         if (fStatus === 'OFF_TODAY' && rec.hasClass) return false;
@@ -1117,15 +1131,19 @@
       const activeTeachersSet = new Set();
 
       dayAll.forEach(c => {
-        const rec = getAttRecord(dateStr, c);
+        const targetDate = getTargetDateForDay(dateStr, c.day);
+        const isExactDay = targetDate === dateStr;
+        const rec = getAttRecord(targetDate, c);
         if (rec.hasClass) {
           activeClassesCount++;
           activeRoomsSet.add(c.room);
           activeTeachersSet.add(rec.isSubstitute && rec.substituteTeacher ? rec.substituteTeacher : c.teacher);
-          if (isRecordChecked(rec)) checkedCount++;
-          if (rec.lateMinutes > 0) lateClasses++;
-          const arrivedCnt = Object.values(rec.studentStatus || {}).filter(s => s && s.arrived).length;
-          studentVisits += arrivedCnt;
+          if (isExactDay && isRecordChecked(rec)) checkedCount++;
+          if (isExactDay && rec.lateMinutes > 0) lateClasses++;
+          if (isExactDay) {
+            const arrivedCnt = Object.values(rec.studentStatus || {}).filter(s => s && s.arrived).length;
+            studentVisits += arrivedCnt;
+          }
         }
       });
 
@@ -1226,7 +1244,9 @@
           .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 
         const cardsHtml = roomClasses.map(c => {
-          const rec = getAttRecord(dateStr, c);
+          const targetDate = getTargetDateForDay(dateStr, c.day);
+          const isExactDay = targetDate === dateStr;
+          const rec = getAttRecord(targetDate, c);
           const sTime = rec.actualStart || c.start;
           const eTime = rec.actualEnd || c.end;
           const sMin = Math.max(START_MIN, timeToMinutes(sTime));
@@ -1235,7 +1255,7 @@
           const heightPx = Math.max(40, Math.round((eMin - sMin) * PX_PER_MIN));
 
           const st = getSubjectStyle(c.subject);
-          const checked = isRecordChecked(rec);
+          const checked = isExactDay && isRecordChecked(rec);
           const displayTeacher = rec.isSubstitute && rec.substituteTeacher ? `${rec.substituteTeacher} (Thay)` : c.teacher;
 
           const studentsArr = Array.isArray(c.students) ? c.students : [];
@@ -1342,13 +1362,15 @@
 
       tbody.innerHTML = rows.map(c => {
         const st = getSubjectStyle(c.subject);
-        const rec = getAttRecord(dateStr, c);
-        const checked = isRecordChecked(rec);
+        const targetDate = getTargetDateForDay(dateStr, c.day);
+        const isExactDay = targetDate === dateStr;
+        const rec = getAttRecord(targetDate, c);
+        const checked = isExactDay && isRecordChecked(rec);
         const isSel = selectedClassIds.has(c.id);
         const teacherObj = state.teachers.find(t => t.name === c.teacher);
         const displayTeacher = rec.isSubstitute && rec.substituteTeacher ? `${rec.substituteTeacher} (Thay)` : c.teacher;
         const studentsArr = Array.isArray(c.students) ? c.students : [];
-        const arrivedCnt = studentsArr.filter(sn => rec.studentStatus[sn]?.arrived).length;
+        const arrivedCnt = isExactDay ? studentsArr.filter(sn => rec.studentStatus[sn]?.arrived).length : 0;
 
         return `
           <tr class="hover:bg-slate-50/80 transition ${isSel ? 'bg-indigo-50/60' : ''}">
@@ -1516,8 +1538,11 @@
     function openClassDetail(classId) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
-      const dateStr = state.workingDate;
-      const rec = getAttRecord(dateStr, c);
+      const workingDateStr = state.workingDate;
+      const workingDayName = getDayNameFromDate(workingDateStr);
+      const isExactDay = workingDayName === c.day;
+      const targetDate = getTargetDateForDay(workingDateStr, c.day);
+      const rec = getAttRecord(targetDate, c);
       const st = getSubjectStyle(c.subject);
       const teacherObj = state.teachers.find(t => t.name === c.teacher);
       const studentsArr = Array.isArray(c.students) ? c.students : [];
@@ -1526,9 +1551,9 @@
         ? studentsArr.map((stName, idx) => {
             const stInfo = state.students.find(s => s.name.toLowerCase() === stName.toLowerCase());
             const statusObj = rec.studentStatus[stName] || { arrived: false, departureType: '', pickupBy: '' };
-            const isArrived = Boolean(statusObj.arrived);
-            const isSelf = statusObj.departureType === 'self';
-            const isPickup = statusObj.departureType === 'pickup';
+            const isArrived = isExactDay && Boolean(statusObj.arrived);
+            const isSelf = isExactDay && statusObj.departureType === 'self';
+            const isPickup = isExactDay && statusObj.departureType === 'pickup';
 
             return `
               <tr class="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/70">
@@ -1538,25 +1563,25 @@
                   <div class="text-[11px] text-slate-500">📞 ${escapeHtml(stInfo?.phone || 'Chưa có SĐT')}</div>
                 </td>
                 <td class="py-2.5 px-2.5">
-                  <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border cursor-pointer transition ${isArrived ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-white border-slate-200 text-slate-600'}">
-                    <input type="checkbox" class="att-st-arrived w-4 h-4 accent-emerald-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isArrived ? 'checked' : ''}
+                  <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${!isExactDay ? 'opacity-50 pointer-events-none' : 'cursor-pointer'} transition ${isArrived ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold' : 'bg-white border-slate-200 text-slate-600'}">
+                    <input type="checkbox" class="att-st-arrived w-4 h-4 accent-emerald-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isArrived ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''}
                       onchange="onArrivedCheckboxChange(this)" />
                     <span class="text-xs">${isArrived ? 'Có đến lớp' : 'Chưa đến'}</span>
                   </label>
                 </td>
                 <td class="py-2.5 px-2.5">
-                  <div class="flex flex-wrap items-center gap-2 text-xs">
+                  <div class="flex flex-wrap items-center gap-2 text-xs ${!isExactDay ? 'opacity-50 pointer-events-none' : ''}">
                     <label class="inline-flex items-center gap-1 cursor-pointer select-none">
-                      <input type="checkbox" class="att-st-self w-3.5 h-3.5 accent-indigo-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isSelf ? 'checked' : ''}
+                      <input type="checkbox" class="att-st-self w-3.5 h-3.5 accent-indigo-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isSelf ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''}
                         onchange="onDepartureSelfChange(this)" />
                       <span>Tự về</span>
                     </label>
                     <label class="inline-flex items-center gap-1 cursor-pointer select-none">
-                      <input type="checkbox" class="att-st-pickup w-3.5 h-3.5 accent-amber-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isPickup ? 'checked' : ''}
+                      <input type="checkbox" class="att-st-pickup w-3.5 h-3.5 accent-amber-600 cursor-pointer" data-student="${escapeHtml(stName)}" ${isPickup ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''}
                         onchange="onDeparturePickupChange(this)" />
                       <span>Phụ huynh</span>
                       <input type="text" class="att-st-pickup-name w-24 border-b border-dashed border-slate-400 focus:border-indigo-600 focus:outline-none text-center bg-transparent text-xs font-medium text-slate-800"
-                        data-student="${escapeHtml(stName)}" placeholder="..." value="${escapeHtml(statusObj.pickupBy || '')}"
+                        data-student="${escapeHtml(stName)}" placeholder="..." value="${escapeHtml(isExactDay ? (statusObj.pickupBy || '') : '')}" ${!isExactDay ? 'disabled' : ''}
                         oninput="onPickupNameInput(this)" />
                       <span>đón</span>
                     </label>
@@ -1584,40 +1609,48 @@
         </div>`,
         `
         <div class="space-y-3.5">
-          <!-- Trạng thái có học hôm nay -->
-          <label class="flex items-center gap-3 p-3 rounded-xl border ${rec.hasClass ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 border-slate-200'} cursor-pointer">
+          <!-- Trạng thái có học hôm đó (luôn cho phép tích báo nghỉ trước kể cả khi đang xem thứ khác) -->
+          <label class="flex items-center gap-3 p-3 rounded-xl border ${rec.hasClass ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'} cursor-pointer">
             <input type="checkbox" id="det-has-class" ${rec.hasClass ? 'checked' : ''} class="w-4 h-4 accent-emerald-600 cursor-pointer" />
             <div>
-              <div class="font-bold text-slate-900 text-xs">✅ Lớp này hôm nay CÓ HỌC</div>
-              <div class="text-[11px] text-slate-500">Tích chọn để tính ca dạy cho giáo viên và điểm danh học viên ngày ${formatDateVN(dateStr)}</div>
+              <div class="font-bold text-slate-900 text-xs">
+                ${isExactDay
+                  ? `✅ Lớp này hôm nay CÓ HỌC (${formatDateVN(targetDate)})`
+                  : `📅 Lớp này ngày ${formatDateVN(targetDate)} (${escapeHtml(c.day)}) CÓ HỌC`}
+              </div>
+              <div class="text-[11px] ${isExactDay ? 'text-slate-500' : 'text-amber-800 font-medium'}">
+                ${isExactDay
+                  ? `Bỏ tích nếu ca học hôm nay nghỉ/hủy; tích chọn để tính ca dạy & điểm danh.`
+                  : `Đang xem trước lịch ${escapeHtml(c.day)} (Ngày làm việc hiện tại là ${formatDateVN(workingDateStr)} - ${workingDayName}). Bỏ tích ở đây nếu biết trước ca ngày ${formatDateVN(targetDate)} hủy.`}
+              </div>
             </div>
           </label>
 
           <!-- Khung giờ thực tế -->
           <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-bold text-amber-900">⏰ Giờ học ngày ${formatDateVN(dateStr)} (Lịch gốc: ${c.start} – ${c.end})</span>
+              <span class="text-xs font-bold text-amber-900">⏰ Giờ học ngày ${formatDateVN(targetDate)} (Lịch gốc: ${c.start} – ${c.end})</span>
               <button type="button" onclick="setExactScheduleTime('${c.start}', '${c.end}')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold cursor-pointer">
                 ✓ Học đúng giờ này
               </button>
             </div>
             <div class="grid grid-cols-2 gap-2.5">
               <div>
-                <label class="block text-[11px] text-slate-600 mb-1">Giờ bắt đầu hôm nay</label>
+                <label class="block text-[11px] text-slate-600 mb-1">Giờ bắt đầu</label>
                 <input type="time" id="det-actual-start" value="${rec.actualStart || c.start}" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-200 bg-white text-xs font-bold" />
               </div>
               <div>
-                <label class="block text-[11px] text-slate-600 mb-1">Giờ kết thúc hôm nay</label>
+                <label class="block text-[11px] text-slate-600 mb-1">Giờ kết thúc</label>
                 <input type="time" id="det-actual-end" value="${rec.actualEnd || c.end}" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-200 bg-white text-xs font-bold" />
               </div>
             </div>
           </div>
 
           <!-- Giáo viên phụ trách -->
-          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 ${!isExactDay ? 'opacity-65' : ''}">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Giáo viên phụ trách ca dạy</div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Giáo viên phụ trách ca dạy ${!isExactDay ? '(Mở điểm danh khi đúng ngày)' : ''}</div>
                 <div class="font-bold text-slate-900 text-sm mt-0.5 flex items-center gap-2 flex-wrap">
                   <span>👩‍🏫 ${escapeHtml(c.teacher)}</span>
                   <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">📞 ${escapeHtml(teacherObj?.phone || 'Chưa có SĐT')}</span>
@@ -1629,30 +1662,30 @@
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 ${!isExactDay ? 'pointer-events-none' : ''}">
               <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold cursor-pointer">
-                <input type="checkbox" id="det-teacher-arrived" ${rec.teacherArrived ? 'checked' : ''} class="w-4 h-4 accent-emerald-600 cursor-pointer" />
+                <input type="checkbox" id="det-teacher-arrived" ${isExactDay && rec.teacherArrived ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''} class="w-4 h-4 accent-emerald-600 cursor-pointer" />
                 <span>Giáo viên đã có mặt tại lớp</span>
               </label>
               <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold cursor-pointer">
-                <input type="checkbox" id="det-is-sub" ${rec.isSubstitute ? 'checked' : ''} onchange="document.getElementById('det-sub-box').classList.toggle('hidden', !this.checked)" class="w-4 h-4 accent-amber-600 cursor-pointer" />
+                <input type="checkbox" id="det-is-sub" ${rec.isSubstitute ? 'checked' : ''} ${!isExactDay ? 'disabled' : ''} onchange="document.getElementById('det-sub-box').classList.toggle('hidden', !this.checked)" class="w-4 h-4 accent-amber-600 cursor-pointer" />
                 <span>↻ Có giáo viên dạy thay</span>
               </label>
             </div>
 
             <div id="det-sub-box" class="${rec.isSubstitute ? '' : 'hidden'}">
               <label class="block text-[11px] font-semibold text-amber-900 mb-1">Chọn giáo viên dạy thay (tự động chuyển công dạy sang GV này):</label>
-              <select id="det-sub-teacher" class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-semibold">
+              <select id="det-sub-teacher" ${!isExactDay ? 'disabled' : ''} class="w-full px-2.5 py-1.5 rounded-lg border border-amber-300 bg-white text-xs font-semibold">
                 <option value="">-- Chọn giáo viên dạy thay --</option>
                 ${otherTeachersOpts}
               </select>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 border-t border-slate-200/70">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 border-t border-slate-200/70 ${!isExactDay ? 'pointer-events-none' : ''}">
               <div>
                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">Số phút đi muộn</label>
                 <div class="flex items-center gap-1.5">
-                  <input type="number" id="det-late-min" min="0" value="${rec.lateMinutes || 0}" class="w-16 px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-rose-600" />
+                  <input type="number" id="det-late-min" min="0" value="${isExactDay ? (rec.lateMinutes || 0) : 0}" ${!isExactDay ? 'disabled' : ''} class="w-16 px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-rose-600" />
                   <button type="button" onclick="addLateMinutes(5)" class="px-2 py-1 rounded bg-amber-100 text-amber-800 text-[11px] font-bold cursor-pointer">+5p</button>
                   <button type="button" onclick="addLateMinutes(10)" class="px-2 py-1 rounded bg-amber-200 text-amber-900 text-[11px] font-bold cursor-pointer">+10p</button>
                   <button type="button" onclick="addLateMinutes(15)" class="px-2 py-1 rounded bg-rose-100 text-rose-800 text-[11px] font-bold cursor-pointer">+15p</button>
@@ -1660,7 +1693,7 @@
               </div>
               <div>
                 <label class="block text-[11px] font-semibold text-slate-600 mb-1">Lý do / Ghi chú</label>
-                <input type="text" id="det-late-reason" value="${escapeHtml(rec.lateReason || '')}" placeholder="VD: Tắc đường, đến muộn 10 phút..." class="w-full px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs" />
+                <input type="text" id="det-late-reason" value="${escapeHtml(rec.lateReason || '')}" placeholder="VD: Nghỉ báo trước, tắc đường..." class="w-full px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs" />
               </div>
             </div>
           </div>
@@ -1669,11 +1702,13 @@
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
               <div class="font-bold text-slate-900 text-xs">🎓 Chi tiết Học viên — Đến lớp & Ra về (Sĩ số: ${studentsArr.length})</div>
-              <div class="flex items-center gap-2 text-xs">
-                <button type="button" onclick="toggleAllStudentsArrived(true)" class="text-emerald-600 hover:underline font-semibold cursor-pointer">Tích tất cả đến lớp</button>
-                <span class="text-slate-300">|</span>
-                <button type="button" onclick="toggleAllStudentsArrived(false)" class="text-slate-500 hover:underline cursor-pointer">Bỏ tích tất cả</button>
-              </div>
+              ${isExactDay ? `
+                <div class="flex items-center gap-2 text-xs">
+                  <button type="button" onclick="toggleAllStudentsArrived(true)" class="text-emerald-600 hover:underline font-semibold cursor-pointer">Tích tất cả đến lớp</button>
+                  <span class="text-slate-300">|</span>
+                  <button type="button" onclick="toggleAllStudentsArrived(false)" class="text-slate-500 hover:underline cursor-pointer">Bỏ tích tất cả</button>
+                </div>
+              ` : `<span class="text-[11px] text-slate-400 italic">Điểm danh đến/về chỉ mở khi chọn đúng ngày học</span>`}
             </div>
 
             <div class="rounded-xl border border-slate-200 overflow-x-auto bg-white">
@@ -1721,7 +1756,7 @@
               ✏️ Sửa lịch / phòng
             </button>
             <button type="button" onclick="saveClassDetail('${c.id}')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer">
-              💾 Lưu điểm danh
+              ${isExactDay ? '💾 Lưu điểm danh' : '💾 Lưu trạng thái ca'}
             </button>
           </div>
         </div>
@@ -1831,44 +1866,57 @@
     function saveClassDetail(classId) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
-      const rec = getAttRecord(state.workingDate, c);
+      const workingDateStr = state.workingDate;
+      const isExactDay = getDayNameFromDate(workingDateStr) === c.day;
+      const targetDate = getTargetDateForDay(workingDateStr, c.day);
+      const rec = getAttRecord(targetDate, c);
+
       rec.hasClass = document.getElementById('det-has-class').checked;
-      rec.timeConfirmed = true;
       rec.actualStart = document.getElementById('det-actual-start').value || c.start;
       rec.actualEnd = document.getElementById('det-actual-end').value || c.end;
-      rec.teacherArrived = document.getElementById('det-teacher-arrived').checked;
-      rec.isSubstitute = document.getElementById('det-is-sub').checked;
-      rec.substituteTeacher = rec.isSubstitute ? document.getElementById('det-sub-teacher').value : '';
-      rec.lateMinutes = parseInt(document.getElementById('det-late-min').value, 10) || 0;
       rec.lateReason = (document.getElementById('det-late-reason').value || '').trim();
 
-      const presentList = [];
-      document.querySelectorAll('.att-st-arrived').forEach(cb => {
-        const stName = cb.dataset.student;
-        const arrived = cb.checked;
-        if (arrived) presentList.push(stName);
+      if (isExactDay) {
+        rec.timeConfirmed = rec.hasClass;
+        rec.teacherArrived = document.getElementById('det-teacher-arrived').checked;
+        rec.isSubstitute = document.getElementById('det-is-sub').checked;
+        rec.substituteTeacher = rec.isSubstitute ? document.getElementById('det-sub-teacher').value : '';
+        rec.lateMinutes = parseInt(document.getElementById('det-late-min').value, 10) || 0;
 
-        const selfCb = Array.from(document.querySelectorAll('.att-st-self')).find(x => x.dataset.student === stName);
-        const pickupCb = Array.from(document.querySelectorAll('.att-st-pickup')).find(x => x.dataset.student === stName);
-        const pickupInp = Array.from(document.querySelectorAll('.att-st-pickup-name')).find(x => x.dataset.student === stName);
+        const presentList = [];
+        document.querySelectorAll('.att-st-arrived').forEach(cb => {
+          const stName = cb.dataset.student;
+          const arrived = cb.checked;
+          if (arrived) presentList.push(stName);
 
-        let departureType = '';
-        if (selfCb && selfCb.checked) departureType = 'self';
-        else if (pickupCb && pickupCb.checked) departureType = 'pickup';
+          const selfCb = Array.from(document.querySelectorAll('.att-st-self')).find(x => x.dataset.student === stName);
+          const pickupCb = Array.from(document.querySelectorAll('.att-st-pickup')).find(x => x.dataset.student === stName);
+          const pickupInp = Array.from(document.querySelectorAll('.att-st-pickup-name')).find(x => x.dataset.student === stName);
 
-        rec.studentStatus[stName] = {
-          arrived,
-          departureType,
-          pickupBy: pickupInp ? pickupInp.value.trim() : ''
-        };
-      });
-      rec.presentStudents = presentList;
+          let departureType = '';
+          if (selfCb && selfCb.checked) departureType = 'self';
+          else if (pickupCb && pickupCb.checked) departureType = 'pickup';
+
+          rec.studentStatus[stName] = {
+            arrived,
+            departureType,
+            pickupBy: pickupInp ? pickupInp.value.trim() : ''
+          };
+        });
+        rec.presentStudents = presentList;
+      }
 
       saveState();
       closeModal();
       renderSchedule();
       refreshAlertCenter();
-      showToast('Đã lưu điểm danh & trạng thái học viên!');
+      if (!isExactDay) {
+        showToast(rec.hasClass
+          ? `Đã giữ lịch học ngày ${formatDateVN(targetDate)} (${c.day})!`
+          : `Đã báo nghỉ trước cho ca ngày ${formatDateVN(targetDate)} (${c.day})!`);
+      } else {
+        showToast('Đã lưu điểm danh & trạng thái học viên!');
+      }
     }
 
     function confirmDeleteSingleClass(classId) {
@@ -1876,10 +1924,10 @@
       if (!c) return;
       openModal(
         '🗑️ Xác nhận xóa ca học',
-        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa ca học <strong>${escapeHtml(c.name)}</strong> (${c.day}, ${c.start}–${c.end}) khỏi lịch không?</p>`,
+        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa ca học <strong>${escapeHtml(c.name)}</strong> (${escapeHtml(c.day)} • ${c.start}–${c.end}) khỏi lịch không?</p>`,
         `
-          <button onclick="openClassDetail('${c.id}')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Quay lại</button>
-          <button onclick="executeDeleteSingleClass('${c.id}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ca học</button>
+          <button onclick="openClassDetail('${c.id}')" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold cursor-pointer">Quay lại</button>
+          <button onclick="executeDeleteSingleClass('${c.id}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ca này</button>
         `,
         'max-w-md'
       );
@@ -1890,6 +1938,7 @@
       Object.keys(state.attendance).forEach(k => {
         if (k.endsWith(`_${classId}`)) delete state.attendance[k];
       });
+      selectedClassIds.delete(classId);
       saveState();
       closeModal();
       renderSchedule();
@@ -1898,27 +1947,27 @@
     }
 
     // -------------------------------------------------------------------------
-    // 8. FORM THÊM / SỬA CA HỌC (TỰ ĐỘNG THÊM HỌC VIÊN MỚI VÀO DANH BẠ)
+    // 8. FORM THÊM / SỬA CA HỌC (KIỂM TRA TRÙNG PHÒNG & TỰ LƯU HỌC VIÊN MỚI)
     // -------------------------------------------------------------------------
-    function openClassForm(classId = null, prefill = {}) {
+    function openClassForm(classId = null, preset = null) {
       const c = classId ? state.classes.find(x => x.id === classId) : null;
-      const dayVal = c ? c.day : (prefill.day || state.selectedDay);
-      const roomVal = c ? c.room : (prefill.room || (state.rooms[0]?.name || 'Phòng 401'));
-      const startVal = c ? c.start : (prefill.start || '09:00');
-      const endVal = c ? c.end : (prefill.end || '10:00');
-      const subjectVal = c ? c.subject : 'Piano';
-      const nameVal = c ? c.name : '';
-      const teacherVal = c ? c.teacher : (state.teachers[0]?.name || '');
-      const typeVal = c ? c.type : 'Cá nhân';
-      const statusVal = c ? c.status : 'Đang học';
-      const studentsVal = c ? (c.students || []).join(', ') : '';
+      const defDay = c?.day || preset?.day || state.selectedDay || 'Thứ 2';
+      const defRoom = c?.room || preset?.room || (state.rooms[0]?.name || 'Phòng 401');
+      const defStart = c?.start || preset?.start || '09:00';
+      const defEnd = c?.end || preset?.end || '10:00';
+      const defSubject = c?.subject || 'Piano';
+      const defType = c?.type || 'Cá nhân';
+      const defStatus = c?.status || 'Đang học';
+      const defTeacher = c?.teacher || (state.teachers[0]?.name || '');
+      const defStudents = Array.isArray(c?.students) ? c.students.join(', ') : '';
 
-      const dayOpts = DAYS_ORDER.map(d => `<option value="${d}" ${d === dayVal ? 'selected' : ''}>${d}</option>`).join('');
-      const roomOpts = state.rooms.map(r => `<option value="${escapeHtml(r.name)}" ${r.name === roomVal ? 'selected' : ''}>${escapeHtml(r.name)}</option>`).join('');
-      const teacherOpts = state.teachers.map(t => `<option value="${escapeHtml(t.name)}" ${t.name === teacherVal ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('');
+      const dayOpts = DAYS_ORDER.map(d => `<option value="${d}" ${d === defDay ? 'selected' : ''}>${d}</option>`).join('');
+      const roomOpts = state.rooms.map(r => `<option value="${escapeHtml(r.name)}" ${r.name === defRoom ? 'selected' : ''}>${escapeHtml(r.name)}</option>`).join('');
+      const teacherListOpts = state.teachers.map(t => `<option value="${escapeHtml(t.name)}">`).join('');
+      const subjectOpts = Object.keys(SUBJECT_COLORS).map(s => `<option value="${s}" ${s === defSubject ? 'selected' : ''}>${s}</option>`).join('');
 
       openModal(
-        c ? `✏️ Sửa ca học: ${escapeHtml(c.name)}` : '➕ Thêm ca học mới vào lịch',
+        c ? `✏️ Sửa lịch / phòng: ${escapeHtml(c.name)}` : '➕ Thêm ca học mới',
         `
         <div class="space-y-3 text-xs">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1932,62 +1981,60 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block font-bold text-slate-700 mb-1">Giờ bắt đầu *</label>
-              <input type="time" id="cf-start" value="${startVal}" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+              <input type="time" id="cf-start" value="${defStart}" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" />
             </div>
             <div>
               <label class="block font-bold text-slate-700 mb-1">Giờ kết thúc *</label>
-              <input type="time" id="cf-end" value="${endVal}" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-            </div>
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Bộ môn *</label>
-              <input type="text" id="cf-subject" list="cf-subject-list" value="${escapeHtml(subjectVal)}" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-              <datalist id="cf-subject-list">
-                ${Object.keys(SUBJECT_COLORS).map(s => `<option value="${s}">`).join('')}
-              </datalist>
-            </div>
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Loại lớp</label>
-              <select id="cf-type" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
-                ${['Cá nhân', 'Đôi', 'Nhóm', 'Học thử', 'Học bù'].map(tp => `<option value="${tp}" ${tp === typeVal ? 'selected' : ''}>${tp}</option>`).join('')}
-              </select>
+              <input type="time" id="cf-end" value="${defEnd}" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold" />
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label class="block font-bold text-slate-700 mb-1">Tên lớp hiển thị</label>
-              <input type="text" id="cf-name" value="${escapeHtml(nameVal)}" placeholder="VD: Piano CN Bảo An (để trống tự ghép)" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+              <label class="block font-bold text-slate-700 mb-1">Bộ môn *</label>
+              <select id="cf-subject" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">${subjectOpts}</select>
             </div>
             <div>
-              <label class="block font-bold text-slate-700 mb-1">Giáo viên phụ trách</label>
-              <input type="text" id="cf-teacher" list="cf-teacher-list" value="${escapeHtml(teacherVal)}" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-              <datalist id="cf-teacher-list">${teacherOpts}</datalist>
+              <label class="block font-bold text-slate-700 mb-1">Loại lớp</label>
+              <select id="cf-type" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
+                ${['Cá nhân', 'Đôi', 'Nhóm', 'Học thử', 'Học bù'].map(tp => `<option value="${tp}" ${tp === defType ? 'selected' : ''}>${tp}</option>`).join('')}
+              </select>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div class="sm:col-span-2">
-              <label class="block font-bold text-slate-700 mb-1">Danh sách học viên (cách nhau bởi dấu phẩy — tự động lưu vào danh bạ nếu mới)</label>
-              <input type="text" id="cf-students" value="${escapeHtml(studentsVal)}" placeholder="VD: Bảo An, Minh Khôi" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tên lớp hiển thị trên lịch</label>
+            <input type="text" id="cf-name" value="${escapeHtml(c?.name || '')}" placeholder="Để trống sẽ tự tạo theo Bộ môn + Loại lớp + Tên HV..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Giáo viên phụ trách *</label>
+              <input type="text" id="cf-teacher" list="cf-teacher-list" value="${escapeHtml(defTeacher)}" placeholder="Chọn hoặc nhập tên GV..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+              <datalist id="cf-teacher-list">${teacherListOpts}</datalist>
             </div>
             <div>
               <label class="block font-bold text-slate-700 mb-1">Trạng thái lớp</label>
               <select id="cf-status" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white">
-                ${['Đang học', 'Tạm nghỉ', 'Đã hủy'].map(st => `<option value="${st}" ${st === statusVal ? 'selected' : ''}>${st}</option>`).join('')}
+                ${['Đang học', 'Tạm nghỉ', 'Đã hủy'].map(st => `<option value="${st}" ${st === defStatus ? 'selected' : ''}>${st}</option>`).join('')}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Danh sách học viên (cách nhau bởi dấu phẩy — tự động lưu vào danh bạ nếu mới)</label>
+            <input type="text" id="cf-students" value="${escapeHtml(defStudents)}" placeholder="VD: Bảo An, Thùy Minh..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
           </div>
         </div>
         `,
         `
-          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="saveClassForm('${classId || ''}')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer">
-            ${c ? '💾 Cập nhật ca học' : '➕ Lưu ca học'}
-          </button>
-        `
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold cursor-pointer">Hủy</button>
+          <button onclick="saveClassForm('${classId || ''}')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-2xs cursor-pointer">💾 Lưu ca học</button>
+        `,
+        'max-w-xl'
       );
     }
 
@@ -1996,57 +2043,74 @@
       const room = document.getElementById('cf-room').value;
       const start = document.getElementById('cf-start').value;
       const end = document.getElementById('cf-end').value;
-      const subject = (document.getElementById('cf-subject').value || 'Piano').trim();
+      const subject = document.getElementById('cf-subject').value;
       const type = document.getElementById('cf-type').value;
-      const teacher = (document.getElementById('cf-teacher').value || 'Chưa phân công').trim();
       const status = document.getElementById('cf-status').value;
-      const students = (document.getElementById('cf-students').value || '')
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean);
-      const rawName = (document.getElementById('cf-name').value || '').trim();
-      const name = rawName || `${subject} - ${type}${students.length === 1 ? ' ' + students[0] : ''}`;
+      const teacher = (document.getElementById('cf-teacher').value || '').trim() || 'Chưa phân công';
+      const studentsRaw = (document.getElementById('cf-students').value || '').trim();
+      const students = studentsRaw ? studentsRaw.split(/[,;]/).map(s => s.trim()).filter(Boolean) : [];
+      let name = (document.getElementById('cf-name').value || '').trim();
 
       if (!start || !end || timeToMinutes(end) <= timeToMinutes(start)) {
         showToast('Giờ kết thúc phải lớn hơn giờ bắt đầu!', 'error');
         return;
       }
 
-      // Tự động lưu học viên mới vào danh bạ
-      const addedCount = ensureStudentsInDirectory(students);
+      if (!name) {
+        name = `${subject} - ${type}${students.length === 1 ? ' ' + students[0] : ''}`;
+      }
+
+      const newStudentsAdded = ensureStudentsInDirectory(students);
 
       if (classId) {
         const idx = state.classes.findIndex(x => x.id === classId);
         if (idx !== -1) {
           state.classes[idx] = { ...state.classes[idx], day, room, start, end, subject, name, teacher, type, status, students };
+          const targetDate = getTargetDateForDay(state.workingDate, day);
+          const rec = getAttRecord(targetDate, state.classes[idx]);
+          rec.actualStart = start;
+          rec.actualEnd = end;
         }
       } else {
-        state.classes.push({
+        const newClass = {
           id: 'CL' + Date.now().toString(36).toUpperCase(),
-          day, room, start, end, subject, name, teacher, type, status, students
-        });
+          day,
+          room,
+          start,
+          end,
+          subject,
+          name,
+          teacher,
+          type,
+          status,
+          students
+        };
+        state.classes.push(newClass);
       }
 
       state.selectedDay = day;
+      document.getElementById('filter-day').value = day;
       saveState();
       closeModal();
       renderSchedule();
       refreshAlertCenter();
-      showToast(addedCount > 0 ? `Đã lưu ca học & tự động thêm ${addedCount} HV mới vào danh bạ!` : 'Đã lưu ca học!');
+      showToast(`Đã lưu ca học${newStudentsAdded > 0 ? ` & thêm ${newStudentsAdded} HV vào danh bạ` : ''}!`);
     }
 
     // -------------------------------------------------------------------------
-    // 9. CHUÔNG THÔNG BÁO (POPOVER DANH SÁCH CẢNH BÁO GIỜ VÀO LỚP)
+    // 9. TRUNG TÂM CHUÔNG THÔNG BÁO (GV CHƯA TỚI / HV CHƯA ĐẾN LỚP)
     // -------------------------------------------------------------------------
     function toggleAlertPopover(e) {
-      e.stopPropagation();
+      if (e) e.stopPropagation();
       const panel = document.getElementById('alert-popover-panel');
+      if (!panel) return;
       panel.classList.toggle('hidden');
       if (!panel.classList.contains('hidden')) refreshAlertCenter();
     }
 
     function closeAlertPopover() {
-      document.getElementById('alert-popover-panel').classList.add('hidden');
+      const panel = document.getElementById('alert-popover-panel');
+      if (panel) panel.classList.add('hidden');
     }
 
     function getActiveAlerts() {
@@ -2055,59 +2119,47 @@
       if (state.workingDate !== todayStr) return [];
 
       const nowMins = now.getHours() * 60 + now.getMinutes();
-      const dayName = getDayNameFromDate(todayStr);
+      const todayDayName = getDayNameFromDate(todayStr);
+      const todayClasses = state.classes.filter(c => c.day === todayDayName && c.status === 'Đang học');
       const alerts = [];
 
-      state.classes.filter(c => c.day === dayName && c.status === 'Đang học').forEach(c => {
+      todayClasses.forEach(c => {
         const rec = getAttRecord(todayStr, c);
         if (!rec.hasClass) return;
+        const sMin = timeToMinutes(rec.actualStart || c.start);
+        const eMin = timeToMinutes(rec.actualEnd || c.end);
+        const diff = nowMins - sMin;
 
-        const sTime = rec.actualStart || c.start;
-        const eTime = rec.actualEnd || c.end;
-        const sMin = timeToMinutes(sTime);
-        const eMin = timeToMinutes(eTime);
+        // Cảnh báo trong khoảng từ 5 phút trước giờ học đến trước giờ kết thúc
+        if (diff >= -5 && nowMins <= eMin) {
+          const gvKey = `gv_${todayStr}_${c.id}`;
+          if (!rec.teacherArrived && !dismissedAlerts[gvKey] && (!snoozedAlerts[gvKey] || snoozedAlerts[gvKey] <= Date.now())) {
+            const tName = rec.isSubstitute && rec.substituteTeacher ? rec.substituteTeacher : c.teacher;
+            const tObj = state.teachers.find(t => t.name === tName);
+            alerts.push({
+              key: gvKey,
+              kind: 'teacher',
+              classObj: c,
+              rec,
+              diff,
+              teacherName: tName,
+              teacherPhone: tObj?.phone || ''
+            });
+          }
 
-        // Chỉ cảnh báo từ trước 10p đến hết ca học
-        if (nowMins < sMin - 10 || nowMins > eMin) return;
-
-        // 1. Cảnh báo GV chưa tới / chưa xác nhận giờ
-        const gvKey = `${todayStr}_${c.id}_gv`;
-        if (!rec.teacherArrived && !dismissedAlerts[gvKey] && (!snoozedAlerts[gvKey] || Date.now() > snoozedAlerts[gvKey])) {
-          const diff = nowMins - sMin;
-          const teacherObj = state.teachers.find(t => t.name === c.teacher);
-          alerts.push({
-            key: gvKey,
-            kind: 'teacher',
-            classId: c.id,
-            title: c.name,
-            room: c.room,
-            time: sTime,
-            teacher: rec.isSubstitute && rec.substituteTeacher ? rec.substituteTeacher : c.teacher,
-            phone: teacherObj?.phone || 'Chưa có SĐT',
-            badgeText: diff > 0 ? `GV chưa tới • Trễ ${diff} phút` : `Sắp vào ca (${Math.abs(diff)}p nữa)`,
-            isLate: diff > 0
-          });
-        }
-
-        // 2. Cảnh báo HV chưa đến lớp (khi đã vào giờ học >= 5 phút)
-        const studentsArr = Array.isArray(c.students) ? c.students : [];
-        const missingStudents = studentsArr.filter(sn => !rec.studentStatus[sn]?.arrived);
-        const stKey = `${todayStr}_${c.id}_st`;
-        if (nowMins >= sMin + 5 && missingStudents.length > 0 && !dismissedAlerts[stKey] && (!snoozedAlerts[stKey] || Date.now() > snoozedAlerts[stKey])) {
-          const stDetails = missingStudents.map(sn => {
-            const info = state.students.find(s => s.name.toLowerCase() === sn.toLowerCase());
-            return info?.phone ? `${sn} (${info.phone})` : sn;
-          });
-          alerts.push({
-            key: stKey,
-            kind: 'student',
-            classId: c.id,
-            title: c.name,
-            room: c.room,
-            time: sTime,
-            missingCount: missingStudents.length,
-            missingText: stDetails.join(', ')
-          });
+          const studentsArr = Array.isArray(c.students) ? c.students : [];
+          const missingStudents = studentsArr.filter(sn => !rec.studentStatus[sn]?.arrived);
+          const hvKey = `hv_${todayStr}_${c.id}`;
+          if (diff >= 0 && missingStudents.length > 0 && !dismissedAlerts[hvKey] && (!snoozedAlerts[hvKey] || snoozedAlerts[hvKey] <= Date.now())) {
+            alerts.push({
+              key: hvKey,
+              kind: 'student',
+              classObj: c,
+              rec,
+              diff,
+              missingStudents
+            });
+          }
         }
       });
 
@@ -2119,60 +2171,74 @@
       const btn = document.getElementById('alert-bell-btn');
       const icon = document.getElementById('alert-bell-icon');
       const label = document.getElementById('alert-bell-label');
-      const countEl = document.getElementById('alert-bell-count');
+      const countBadge = document.getElementById('alert-bell-count');
       const listEl = document.getElementById('alert-popover-list');
+      if (!btn || !listEl) return;
 
-      countEl.textContent = alerts.length;
+      countBadge.textContent = alerts.length;
       if (alerts.length > 0) {
         btn.className = 'px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 border border-rose-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm';
         icon.className = 'text-sm bell-ringing';
         label.textContent = 'Cảnh báo';
-        countEl.className = 'px-1.5 py-0.2 rounded-full bg-white text-rose-700 text-[11px] font-extrabold';
+        countBadge.className = 'px-1.5 py-0.2 rounded-full bg-white text-rose-700 text-[11px] font-extrabold';
       } else {
-        btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer';
+        btn.className = 'px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs';
         icon.className = 'text-sm';
         label.textContent = 'Thông báo';
-        countEl.className = 'px-1.5 py-0.2 rounded-full bg-emerald-200 text-emerald-900 text-[11px] font-extrabold';
+        countBadge.className = 'px-1.5 py-0.2 rounded-full bg-emerald-200 text-emerald-900 text-[11px] font-extrabold';
       }
 
       if (!alerts.length) {
-        listEl.innerHTML = `<div class="py-8 text-center text-xs text-slate-400">🎉 Hiện tại không có cảnh báo trễ giờ hay vắng mặt nào!</div>`;
+        listEl.innerHTML = `
+          <div class="py-8 text-center space-y-1">
+            <div class="text-2xl">✅</div>
+            <div class="text-xs font-bold text-slate-700">Không có cảnh báo nào lúc này</div>
+            <div class="text-[11px] text-slate-400">Các lớp đang diễn ra đều ổn định hoặc chưa tới giờ nhắc.</div>
+          </div>
+        `;
         return;
       }
 
       listEl.innerHTML = alerts.map(a => {
+        const c = a.classObj;
+        const sTime = a.rec.actualStart || c.start;
         if (a.kind === 'teacher') {
+          const statusTitle = a.diff > 0 ? `GV chưa tới • Trễ ${a.diff} phút` : `Sắp vào ca (${Math.abs(a.diff)}p nữa)`;
           return `
-            <div class="p-3 rounded-xl border-2 ${a.isLate ? 'border-amber-400 bg-amber-50/40' : 'border-indigo-200 bg-indigo-50/30'} space-y-2 relative">
-              <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="absolute top-2 right-2 w-6 h-6 rounded-lg hover:bg-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+            <div class="p-3 rounded-xl bg-amber-50/80 border border-amber-300 space-y-2 relative">
+              <button onclick="dismissAlert('${a.key}')" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-lg hover:bg-amber-200/70 text-amber-800 flex items-center justify-center text-xs font-bold cursor-pointer" title="Đóng thông báo này">✕</button>
               <div class="pr-6 flex items-center justify-between gap-2 text-[11px]">
-                <span class="font-extrabold text-amber-800">🔔 ${escapeHtml(a.badgeText)}</span>
-                <span class="text-slate-500 font-semibold">${a.time} • ${escapeHtml(a.room)}</span>
+                <span class="font-extrabold text-amber-900">🔔 ${statusTitle}</span>
+                <span class="text-slate-600 font-semibold">${sTime} • ${escapeHtml(c.room)}</span>
               </div>
-              <div class="font-bold text-slate-900 text-xs">${escapeHtml(a.title)}</div>
-              <div class="text-xs text-slate-700">👩‍🏫 ${escapeHtml(a.teacher)} • 📞 <span class="font-semibold">${escapeHtml(a.phone)}</span></div>
-              <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <button onclick="confirmTimeOkFromAlert('${a.classId}', '${a.key}')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[11px] font-bold cursor-pointer">✓ Đúng giờ này</button>
-                <button onclick="closeAlertPopover(); openClassDetail('${a.classId}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold cursor-pointer">✏️ Đổi giờ</button>
-                <button onclick="confirmTeacherArrivedFromAlert('${a.classId}', '${a.key}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer">✓ GV đã tới</button>
-                <button onclick="snoozeAlert('${a.key}')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[11px] font-semibold cursor-pointer">⏰ Sau 5p nhắc lại</button>
+              <div class="font-bold text-slate-900 text-xs">${escapeHtml(c.name)}</div>
+              <div class="text-xs text-slate-700">👩‍🏫 <strong>${escapeHtml(a.teacherName)}</strong> ${a.teacherPhone ? `• 📞 <span class="font-semibold text-indigo-700">${escapeHtml(a.teacherPhone)}</span>` : ''}</div>
+              <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                <button onclick="confirmTimeOkFromAlert('${c.id}', '${a.key}')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[11px] font-bold cursor-pointer">✓ Đúng giờ này</button>
+                <button onclick="closeAlertPopover(); openClassDetail('${c.id}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-bold cursor-pointer">✏️ Đổi giờ</button>
+                <button onclick="confirmTeacherArrivedFromAlert('${c.id}', '${a.key}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer">✓ GV đã tới</button>
+                <button onclick="snoozeAlert('${a.key}')" class="px-2.5 py-1 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 text-[11px] font-semibold cursor-pointer">⏰ Sau 5p nhắc lại</button>
               </div>
             </div>
           `;
         } else {
+          const missingText = a.missingStudents.map(sn => {
+            const stInfo = state.students.find(s => s.name.toLowerCase() === sn.toLowerCase());
+            return stInfo?.phone ? `${sn} (${stInfo.phone})` : sn;
+          }).join(', ');
           return `
-            <div class="p-3 rounded-xl border-2 border-rose-400 bg-rose-50/40 space-y-2 relative">
-              <button onclick="dismissAlert('${a.key}')" title="Đóng thông báo này" class="absolute top-2 right-2 w-6 h-6 rounded-lg hover:bg-slate-200/80 text-slate-400 hover:text-slate-700 flex items-center justify-center font-bold text-xs cursor-pointer">✕</button>
+            <div class="p-3 rounded-xl bg-rose-50/80 border border-rose-300 space-y-2 relative">
+              <button onclick="dismissAlert('${a.key}')" class="absolute top-2.5 right-2.5 w-6 h-6 rounded-lg hover:bg-rose-200/70 text-rose-800 flex items-center justify-center text-xs font-bold cursor-pointer" title="Đóng thông báo này">✕</button>
               <div class="pr-6 flex items-center justify-between gap-2 text-[11px]">
-                <span class="font-extrabold text-rose-700">🚨 HV chưa đến lớp (${a.missingCount})</span>
-                <span class="text-slate-500 font-semibold">${a.time} • ${escapeHtml(a.room)}</span>
+                <span class="font-extrabold text-rose-800">🚨 HV chưa đến lớp (${a.missingStudents.length})</span>
+                <span class="text-slate-600 font-semibold">${sTime} • ${escapeHtml(c.room)}</span>
               </div>
-              <div class="font-bold text-slate-900 text-xs">${escapeHtml(a.title)}</div>
-              <div class="text-xs text-slate-700">${escapeHtml(a.missingText)}</div>
-              <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <button onclick="confirmAllStudentsFromAlert('${a.classId}', '${a.key}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer">✓ Đã đến đủ</button>
-                <button onclick="closeAlertPopover(); openClassDetail('${a.classId}')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[11px] font-bold cursor-pointer">Điểm danh</button>
-                <button onclick="snoozeAlert('${a.key}')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 text-[11px] font-semibold cursor-pointer">⏰ Sau 5p nhắc lại</button>
+              <div class="font-bold text-slate-900 text-xs">${escapeHtml(c.name)}</div>
+              <div class="text-xs text-slate-700">${escapeHtml(missingText)}</div>
+              <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                <button onclick="confirmAllStudentsFromAlert('${c.id}', '${a.key}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer">✓ Đã đến đủ</button>
+                <button onclick="closeAlertPopover(); openClassDetail('${c.id}')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-800 text-[11px] font-bold cursor-pointer">Điểm danh</button>
+                <button onclick="snoozeAlert('${a.key}')" class="px-2.5 py-1 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-950 text-[11px] font-semibold cursor-pointer">⏰ Sau 5p nhắc lại</button>
               </div>
             </div>
           `;
@@ -2213,51 +2279,75 @@
       saveState();
       renderSchedule();
       refreshAlertCenter();
-      showToast('Đã xác nhận giáo viên có mặt tại lớp!');
+      showToast('Đã xác nhận giáo viên có mặt!');
     }
 
     function confirmAllStudentsFromAlert(classId, key) {
       const c = state.classes.find(x => x.id === classId);
       if (!c) return;
       const rec = getAttRecord(state.workingDate, c);
-      (c.students || []).forEach(sn => {
+      const studentsArr = Array.isArray(c.students) ? c.students : [];
+      rec.presentStudents = [...studentsArr];
+      studentsArr.forEach(sn => {
         if (!rec.studentStatus[sn]) rec.studentStatus[sn] = { arrived: true, departureType: '', pickupBy: '' };
         else rec.studentStatus[sn].arrived = true;
       });
-      rec.presentStudents = [...(c.students || [])];
       dismissedAlerts[key] = true;
       saveState();
       renderSchedule();
       refreshAlertCenter();
-      showToast('Đã tích điểm danh đủ học viên!');
+      showToast('Đã điểm danh tất cả học viên đến lớp!');
     }
 
     // -------------------------------------------------------------------------
-    // 10. CHỐT CA CUỐI NGÀY, LỊCH SỬ & BÁO CÁO CUỐI THÁNG
+    // 10. CHỐT CA CUỐI NGÀY & LỊCH SỬ CHỐT CA
     // -------------------------------------------------------------------------
     function openCloseDayModal() {
       const dateStr = state.workingDate;
       const dayName = getDayNameFromDate(dateStr);
       const dayClasses = state.classes.filter(c => c.day === dayName);
-      const activeList = dayClasses.filter(c => getAttRecord(dateStr, c).hasClass);
+
+      let activeCount = 0;
+      let studentCount = 0;
+      let lateCount = 0;
+      dayClasses.forEach(c => {
+        const rec = getAttRecord(dateStr, c);
+        if (rec.hasClass) {
+          activeCount++;
+          studentCount += (rec.presentStudents || []).length;
+          if (rec.lateMinutes > 0) lateCount++;
+        }
+      });
 
       openModal(
         `✅ Chốt ca học ngày ${formatDateVN(dateStr)} (${dayName})`,
         `
         <div class="space-y-3 text-xs">
-          <p class="text-slate-600">Hệ thống sẽ lưu trữ toàn bộ dữ liệu điểm danh giáo viên, dạy thay, đi muộn và học viên đến lớp của ngày <strong>${formatDateVN(dateStr)}</strong> vào mục <strong>Lịch sử chốt ca</strong> & <strong>Báo cáo cuối tháng</strong>.</p>
-          <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
-            <div>• Tổng số ca có học: <strong>${activeList.length} ca</strong></div>
-            <div>• Ghi chú chốt ca (nếu có):</div>
-            <input type="text" id="close-day-note" placeholder="VD: Đã kiểm tra đủ sĩ số và khóa cửa các phòng..." class="w-full mt-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white" />
+          <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <div class="text-slate-500">Số lớp có học</div>
+              <div class="text-base font-extrabold text-emerald-700 mt-0.5">${activeCount} lớp</div>
+            </div>
+            <div>
+              <div class="text-slate-500">Lượt HV đi học</div>
+              <div class="text-base font-extrabold text-indigo-700 mt-0.5">${studentCount} lượt</div>
+            </div>
+            <div>
+              <div class="text-slate-500">Ca GV đi muộn</div>
+              <div class="text-base font-extrabold text-rose-600 mt-0.5">${lateCount} ca</div>
+            </div>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Ghi chú cuối ngày (tùy chọn)</label>
+            <input type="text" id="close-day-note" placeholder="VD: Bàn giao ca tối đầy đủ..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
           </div>
         </div>
         `,
         `
-          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="executeCloseDay()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer">Xác nhận chốt ca</button>
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold cursor-pointer">Hủy</button>
+          <button onclick="executeCloseDay()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer">✅ Xác nhận chốt ca</button>
         `,
-        'max-w-lg'
+        'max-w-md'
       );
     }
 
@@ -2269,7 +2359,7 @@
 
       const sessions = dayClasses.map(c => {
         const rec = getAttRecord(dateStr, c);
-        const arrivedStudents = (c.students || []).filter(sn => rec.studentStatus[sn]?.arrived);
+        const actualTeacher = rec.isSubstitute && rec.substituteTeacher ? rec.substituteTeacher : c.teacher;
         return {
           classId: c.id,
           className: c.name,
@@ -2278,18 +2368,17 @@
           start: rec.actualStart || c.start,
           end: rec.actualEnd || c.end,
           hasClass: rec.hasClass,
-          teacher: rec.isSubstitute && rec.substituteTeacher ? rec.substituteTeacher : c.teacher,
+          teacher: actualTeacher,
           originalTeacher: c.teacher,
           isSubstitute: rec.isSubstitute,
           lateMinutes: rec.lateMinutes || 0,
           lateReason: rec.lateReason || '',
-          presentStudents: arrivedStudents,
+          presentStudents: [...(rec.presentStudents || [])],
           studentStatus: JSON.parse(JSON.stringify(rec.studentStatus || {}))
         };
       });
 
-      const entry = {
-        id: 'HIS_' + dateStr,
+      const snapshot = {
         date: dateStr,
         dayName,
         closedAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
@@ -2298,9 +2387,10 @@
       };
 
       const existingIdx = state.history.findIndex(h => h.date === dateStr);
-      if (existingIdx !== -1) state.history[existingIdx] = entry;
-      else state.history.unshift(entry);
+      if (existingIdx !== -1) state.history[existingIdx] = snapshot;
+      else state.history.unshift(snapshot);
 
+      state.history.sort((a, b) => b.date.localeCompare(a.date));
       saveState();
       closeModal();
       renderSchedule();
@@ -2308,116 +2398,112 @@
     }
 
     function renderHistory() {
-      const monthFilter = document.getElementById('history-month-filter').value;
-      const items = state.history.filter(h => !monthFilter || h.date.startsWith(monthFilter));
+      const mFilter = document.getElementById('history-month-filter').value;
+      const items = state.history.filter(h => !mFilter || h.date.startsWith(mFilter));
       const container = document.getElementById('history-list');
 
       if (!items.length) {
-        container.innerHTML = `<div class="bg-white p-10 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs">Chưa có lịch sử chốt ca nào. Hãy bấm <strong>Chốt ca học cuối ngày</strong> ở tab Lịch phòng học để lưu trữ.</div>`;
+        container.innerHTML = `<div class="bg-white p-10 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs">Chưa có lịch sử chốt ca nào được lưu.</div>`;
         return;
       }
 
       container.innerHTML = items.map(h => {
         const activeSessions = (h.sessions || []).filter(s => s.hasClass);
-        const totalSt = activeSessions.reduce((sum, s) => sum + (s.presentStudents?.length || 0), 0);
+        const totalStudents = activeSessions.reduce((acc, s) => acc + (s.presentStudents?.length || 0), 0);
+        const lateSessions = activeSessions.filter(s => s.lateMinutes > 0);
+
         return `
           <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-xs font-bold">📅 ${formatDateVN(h.date)} (${escapeHtml(h.dayName)})</span>
-                <span class="text-xs text-slate-500">Chốt lúc ${escapeHtml(h.closedAt)}</span>
+                <span class="text-xs text-slate-500">Chốt lúc <strong>${escapeHtml(h.closedAt || '')}</strong></span>
                 ${h.note ? `<span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs">📝 ${escapeHtml(h.note)}</span>` : ''}
               </div>
               <div class="flex items-center gap-2 text-xs">
                 <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold">${activeSessions.length} ca dạy</span>
-                <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold">${totalSt} lượt HV</span>
-                <button onclick="deleteHistoryItem('${h.date}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold cursor-pointer">Xóa</button>
+                <span class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-bold">${totalStudents} lượt HV</span>
+                ${lateSessions.length ? `<span class="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 font-bold">${lateSessions.length} ca muộn</span>` : ''}
+                <button onclick="deleteHistoryRecord('${h.date}')" class="px-2 py-1 rounded-lg hover:bg-rose-50 text-rose-600 font-semibold cursor-pointer">🗑️ Xóa</button>
               </div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr class="bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500 uppercase">
-                    <th class="py-2 px-3">Giờ / Phòng</th>
-                    <th class="py-2 px-3">Lớp / Môn</th>
-                    <th class="py-2 px-3">Giáo viên thực dạy</th>
-                    <th class="py-2 px-3">Đi muộn</th>
-                    <th class="py-2 px-3">Học viên có mặt</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  ${activeSessions.map(s => `
-                    <tr>
-                      <td class="py-2 px-3 font-medium">${s.start}–${s.end} • ${escapeHtml(s.room)}</td>
-                      <td class="py-2 px-3 font-bold">${escapeHtml(s.className)}</td>
-                      <td class="py-2 px-3">${escapeHtml(s.teacher)} ${s.isSubstitute ? '<span class="text-amber-600 font-semibold">(Dạy thay)</span>' : ''}</td>
-                      <td class="py-2 px-3">${s.lateMinutes > 0 ? `<span class="text-rose-600 font-bold">${s.lateMinutes} phút</span>` : '—'}</td>
-                      <td class="py-2 px-3 text-slate-700">${escapeHtml((s.presentStudents || []).join(', ') || 'Không có')}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
+              ${activeSessions.map(s => `
+                <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs space-y-1">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 truncate">${escapeHtml(s.className)}</span>
+                    <span class="text-[11px] text-slate-500 shrink-0">${s.start}–${s.end}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-600">🚪 ${escapeHtml(s.room)} • 👩‍🏫 ${escapeHtml(s.teacher)} ${s.lateMinutes > 0 ? `<span class="text-rose-600 font-bold">(Muộn ${s.lateMinutes}p)</span>` : ''}</div>
+                  <div class="text-[11px] text-indigo-700 font-medium">🎓 HV đi học (${s.presentStudents.length}): ${escapeHtml(s.presentStudents.join(', ') || 'Không có')}</div>
+                </div>
+              `).join('')}
             </div>
           </div>
         `;
       }).join('');
     }
 
-    function deleteHistoryItem(dateStr) {
+    function deleteHistoryRecord(dateStr) {
       state.history = state.history.filter(h => h.date !== dateStr);
       saveState();
       renderHistory();
-      showToast('Đã xóa bản ghi lịch sử!');
+      renderSchedule();
+      showToast(`Đã xóa bản chốt ca ngày ${formatDateVN(dateStr)}!`);
     }
 
+    // -------------------------------------------------------------------------
+    // 11. BÁO CÁO CUỐI THÁNG
+    // -------------------------------------------------------------------------
     function getMonthlyReportData() {
-      const mInput = document.getElementById('report-month');
-      if (!mInput.value) mInput.value = state.workingDate.slice(0, 7);
-      const monthStr = mInput.value;
+      const monthStr = document.getElementById('report-month').value || state.workingDate.slice(0, 7);
       const kw = (document.getElementById('report-search').value || '').trim().toLowerCase();
-
       const monthHistory = state.history.filter(h => h.date.startsWith(monthStr));
+
       const studentMap = {};
       const teacherMap = {};
-      const lateRows = [];
+      const lateList = [];
 
       monthHistory.forEach(h => {
-        (h.sessions || []).filter(s => s.hasClass).forEach(s => {
-          // Thống kê giáo viên thực dạy
-          const tName = s.teacher || 'Chưa rõ';
+        (h.sessions || []).forEach(s => {
+          if (!s.hasClass) return;
+
+          // Thống kê giáo viên
+          const tName = s.teacher || 'Chưa phân công';
           if (!teacherMap[tName]) {
-            const tInfo = state.teachers.find(t => t.name === tName);
+            const tObj = state.teachers.find(t => t.name === tName);
             teacherMap[tName] = {
-              id: tInfo?.id || '—',
+              id: tObj?.id || '-',
               name: tName,
-              phone: tInfo?.phone || '—',
-              subject: tInfo?.subject || s.subject,
-              sessionsCount: 0,
+              phone: tObj?.phone || '-',
+              subject: tObj?.subject || s.subject || '-',
+              count: 0,
               lateCount: 0,
               details: []
             };
           }
-          teacherMap[tName].sessionsCount++;
-          teacherMap[tName].details.push(`${formatDateVN(h.date)} (${s.start}-${s.end})`);
+          teacherMap[tName].count++;
+          if (s.lateMinutes > 0) teacherMap[tName].lateCount++;
+          teacherMap[tName].details.push(`${formatDateVN(h.date)} (${s.start}-${s.end} • ${s.className})`);
+
           if (s.lateMinutes > 0) {
-            teacherMap[tName].lateCount++;
-            lateRows.push({
-              teacherName: tName,
+            lateList.push({
+              teacher: tName,
               date: formatDateVN(h.date),
-              timeRange: `${s.start} - ${s.end} (${s.className})`,
+              timeRange: `${s.start} – ${s.end} (${s.className})`,
               lateMinutes: s.lateMinutes,
-              reason: s.lateReason || 'Đi muộn'
+              reason: s.lateReason || ''
             });
           }
 
-          // Thống kê học viên đi học
+          // Thống kê học viên
           (s.presentStudents || []).forEach(stName => {
             if (!studentMap[stName]) {
-              const stInfo = state.students.find(st => st.name.toLowerCase() === stName.toLowerCase());
+              const stObj = state.students.find(x => x.name.toLowerCase() === stName.toLowerCase());
               studentMap[stName] = {
-                id: stInfo?.id || '—',
+                id: stObj?.id || '-',
                 name: stName,
-                phone: stInfo?.phone || '—',
+                phone: stObj?.phone || '-',
                 count: 0,
                 dates: []
               };
@@ -2428,80 +2514,88 @@
         });
       });
 
-      const students = Object.values(studentMap).filter(s => !kw || s.name.toLowerCase().includes(kw));
-      const teachers = Object.values(teacherMap).filter(t => !kw || t.name.toLowerCase().includes(kw));
-      return { monthStr, monthHistory, students, teachers, lateRows };
+      const students = Object.values(studentMap)
+        .filter(x => !kw || x.name.toLowerCase().includes(kw))
+        .sort((a, b) => b.count - a.count);
+
+      const teachers = Object.values(teacherMap)
+        .filter(x => !kw || x.name.toLowerCase().includes(kw))
+        .sort((a, b) => b.count - a.count);
+
+      return { monthStr, monthHistory, students, teachers, lateList };
     }
 
     function renderReport() {
-      const { monthHistory, students, teachers, lateRows } = getMonthlyReportData();
-      const totalSessions = teachers.reduce((a, b) => a + b.sessionsCount, 0);
-      const totalVisits = students.reduce((a, b) => a + b.count, 0);
+      const { monthHistory, students, teachers, lateList } = getMonthlyReportData();
+      const totalSessions = teachers.reduce((acc, t) => acc + t.count, 0);
+      const totalStudentVisits = students.reduce((acc, s) => acc + s.count, 0);
 
       document.getElementById('report-kpis').innerHTML = `
-        <div class="bg-white p-3 rounded-xl border border-slate-200">
-          <div class="text-xs text-slate-500">Số ngày đã chốt</div>
+        <div class="bg-white p-3 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500">Số ngày đã chốt ca</div>
           <div class="text-lg font-extrabold text-slate-900 mt-0.5">${monthHistory.length} ngày</div>
         </div>
-        <div class="bg-white p-3 rounded-xl border border-slate-200">
+        <div class="bg-white p-3 rounded-2xl border border-slate-200">
           <div class="text-xs text-slate-500">Tổng ca thực dạy</div>
           <div class="text-lg font-extrabold text-indigo-600 mt-0.5">${totalSessions} ca</div>
         </div>
-        <div class="bg-white p-3 rounded-xl border border-slate-200">
+        <div class="bg-white p-3 rounded-2xl border border-slate-200">
           <div class="text-xs text-slate-500">Tổng lượt HV đi học</div>
-          <div class="text-lg font-extrabold text-emerald-600 mt-0.5">${totalVisits} lượt</div>
+          <div class="text-lg font-extrabold text-emerald-600 mt-0.5">${totalStudentVisits} lượt</div>
         </div>
-        <div class="bg-white p-3 rounded-xl border border-slate-200">
-          <div class="text-xs text-slate-500">Số lượt GV đi muộn</div>
-          <div class="text-lg font-extrabold text-rose-600 mt-0.5">${lateRows.length} lượt</div>
+        <div class="bg-white p-3 rounded-2xl border border-slate-200">
+          <div class="text-xs text-slate-500">Ca giáo viên đi muộn</div>
+          <div class="text-lg font-extrabold text-rose-600 mt-0.5">${lateList.length} ca</div>
         </div>
       `;
 
-      document.getElementById('report-students-body').innerHTML = students.length
+      const stBody = document.getElementById('report-students-body');
+      stBody.innerHTML = students.length
         ? students.map(s => `
-            <tr>
+            <tr class="hover:bg-slate-50">
               <td class="py-2.5 px-4 font-mono text-xs text-slate-500">${escapeHtml(s.id)}</td>
               <td class="py-2.5 px-4 font-bold text-slate-900 text-xs">${escapeHtml(s.name)}</td>
               <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(s.phone)}</td>
-              <td class="py-2.5 px-4 text-center font-extrabold text-emerald-700 text-xs">${s.count} buổi</td>
+              <td class="py-2.5 px-4 text-center"><span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">${s.count} buổi</span></td>
               <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(s.dates.join(', '))}</td>
             </tr>
           `).join('')
-        : `<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400">Chưa có dữ liệu chốt ca trong tháng này.</td></tr>`;
+        : `<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400">Chưa có dữ liệu điểm danh học viên trong tháng này.</td></tr>`;
 
-      document.getElementById('report-teachers-body').innerHTML = teachers.length
+      const gvBody = document.getElementById('report-teachers-body');
+      gvBody.innerHTML = teachers.length
         ? teachers.map(t => `
-            <tr>
+            <tr class="hover:bg-slate-50">
               <td class="py-2.5 px-4 font-mono text-xs text-slate-500">${escapeHtml(t.id)}</td>
               <td class="py-2.5 px-4 font-bold text-slate-900 text-xs">${escapeHtml(t.name)}</td>
               <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(t.phone)}</td>
-              <td class="py-2.5 px-4 text-xs text-slate-700">${escapeHtml(t.subject)}</td>
-              <td class="py-2.5 px-4 text-center font-extrabold text-indigo-700 text-xs">${t.sessionsCount} ca</td>
-              <td class="py-2.5 px-4 text-center font-bold ${t.lateCount > 0 ? 'text-rose-600' : 'text-slate-400'} text-xs">${t.lateCount}</td>
-              <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(t.details.join(', '))}</td>
+              <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(t.subject)}</td>
+              <td class="py-2.5 px-4 text-center"><span class="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 font-bold text-xs">${t.count} ca</span></td>
+              <td class="py-2.5 px-4 text-center">${t.lateCount > 0 ? `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-xs">${t.lateCount} ca</span>` : '<span class="text-slate-400 text-xs">0</span>'}</td>
+              <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(t.details.join(' | '))}</td>
             </tr>
           `).join('')
-        : `<tr><td colspan="7" class="py-6 text-center text-xs text-slate-400">Chưa có dữ liệu chốt ca trong tháng này.</td></tr>`;
+        : `<tr><td colspan="7" class="py-6 text-center text-xs text-slate-400">Chưa có dữ liệu ca dạy giáo viên trong tháng này.</td></tr>`;
 
-      document.getElementById('report-late-inout-body').innerHTML = lateRows.length
-        ? lateRows.map((r, i) => `
-            <tr>
+      const lateBody = document.getElementById('report-late-inout-body');
+      lateBody.innerHTML = lateList.length
+        ? lateList.map((l, i) => `
+            <tr class="hover:bg-rose-50/40">
               <td class="py-2.5 px-3 text-center text-xs text-slate-500">${i + 1}</td>
-              <td class="py-2.5 px-4 font-bold text-slate-900 text-xs">${escapeHtml(r.teacherName)}</td>
-              <td class="py-2.5 px-3 text-xs text-slate-700">${escapeHtml(r.date)}</td>
-              <td class="py-2.5 px-4 text-xs text-slate-700">${escapeHtml(r.timeRange)}</td>
-              <td class="py-2.5 px-3 text-center font-extrabold text-rose-600 text-xs">${r.lateMinutes} phút</td>
-              <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(r.reason)}</td>
+              <td class="py-2.5 px-4 font-bold text-slate-900 text-xs">${escapeHtml(l.teacher)}</td>
+              <td class="py-2.5 px-3 text-xs text-slate-700">${escapeHtml(l.date)}</td>
+              <td class="py-2.5 px-4 text-xs text-slate-700">${escapeHtml(l.timeRange)}</td>
+              <td class="py-2.5 px-3 text-center font-bold text-rose-600 text-xs">${l.lateMinutes} phút</td>
+              <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(l.reason)}</td>
             </tr>
           `).join('')
-        : `<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400">Không có ghi nhận đi muộn nào trong tháng này.</td></tr>`;
+        : `<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400">Không có giáo viên đi muộn trong tháng này.</td></tr>`;
     }
 
     function exportMonthlyStudentCSV() {
       const { monthStr, students } = getMonthlyReportData();
-      if (!students.length) { showToast('Không có dữ liệu để xuất!', 'warn'); return; }
-      const rows = [['Mã HV', 'Tên học viên', 'SĐT', 'Tổng số buổi', 'Chi tiết các ngày đi học']];
-      students.forEach(s => rows.push([s.id, s.name, s.phone, s.count, s.dates.join('; ')]));
+      const rows = [['Mã HV', 'Tên học viên', 'SĐT', 'Tổng số buổi', 'Chi tiết ngày đi học']];
+      students.forEach(s => rows.push([s.id, s.name, s.phone, s.count, s.dates.join(', ')]));
       const ws = XLSX.utils.aoa_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'BaoCaoHocVien');
@@ -2510,9 +2604,8 @@
 
     function exportMonthlyTeacherCSV() {
       const { monthStr, teachers } = getMonthlyReportData();
-      if (!teachers.length) { showToast('Không có dữ liệu để xuất!', 'warn'); return; }
-      const rows = [['Mã GV', 'Tên giáo viên', 'SĐT', 'Bộ môn', 'Số ca thực dạy', 'Số lần đi muộn', 'Chi tiết các ca']];
-      teachers.forEach(t => rows.push([t.id, t.name, t.phone, t.subject, t.sessionsCount, t.lateCount, t.details.join('; ')]));
+      const rows = [['Mã GV', 'Tên giáo viên', 'SĐT', 'Bộ môn', 'Số ca dạy', 'Số ca đi muộn', 'Chi tiết ca dạy']];
+      teachers.forEach(t => rows.push([t.id, t.name, t.phone, t.subject, t.count, t.lateCount, t.details.join(' | ')]));
       const ws = XLSX.utils.aoa_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'BaoCaoGiaoVien');
@@ -2520,10 +2613,9 @@
     }
 
     function exportTeacherLateInOutXLSX() {
-      const { monthStr, lateRows } = getMonthlyReportData();
-      if (!lateRows.length) { showToast('Không có dữ liệu đi muộn trong tháng này!', 'warn'); return; }
+      const { monthStr, lateList } = getMonthlyReportData();
       const rows = [['STT', 'Họ và tên', 'Ngày tháng', 'Thời gian ca dạy', 'Số phút đi muộn', 'Lý do / Ghi chú']];
-      lateRows.forEach((r, idx) => rows.push([idx + 1, r.teacherName, r.date, r.timeRange, r.lateMinutes, r.reason]));
+      lateList.forEach((l, idx) => rows.push([idx + 1, l.teacher, l.date, l.timeRange, l.lateMinutes, l.reason]));
       const ws = XLSX.utils.aoa_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'BangKeDiMuon');
@@ -2531,39 +2623,41 @@
     }
 
     // -------------------------------------------------------------------------
-    // 11. QUẢN LÝ PHÒNG HỌC (SỐ CA THỰC TẾ THEO LỊCH)
+    // 12. QUẢN LÝ PHÒNG HỌC (HIỂN THỊ ĐÚNG SỐ CA THỰC TẾ TRÊN LỊCH)
     // -------------------------------------------------------------------------
     function renderRooms() {
       document.getElementById('rooms-count-header').textContent = state.rooms.length;
-      document.getElementById('rooms-total-classes-badge').textContent = state.classes.length > 0
-        ? `Tổng: ${state.classes.length} ca/tuần`
-        : 'Chưa có ca học nào trên lịch';
+      const totalClasses = state.classes.length;
+      const totalBadge = document.getElementById('rooms-total-classes-badge');
+      if (totalBadge) {
+        totalBadge.textContent = totalClasses > 0 ? `Tổng: ${totalClasses} ca/tuần` : 'Chưa có ca học nào trên lịch';
+      }
 
-      document.getElementById('rooms-grid').innerHTML = state.rooms.map(r => {
-        const realCount = state.classes.filter(c => c.room === r.name).length;
+      const grid = document.getElementById('rooms-grid');
+      grid.innerHTML = state.rooms.map(r => {
+        const roomClasses = state.classes.filter(c => c.room === r.name);
+        const count = roomClasses.length;
         return `
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between gap-3 hover:border-indigo-300 transition">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col justify-between space-y-3">
             <div class="space-y-2">
-              <div class="flex items-center justify-between gap-2">
-                <span class="px-2.5 py-0.5 rounded-lg bg-indigo-50 text-indigo-700 font-bold text-xs">${escapeHtml(r.floor || 'Tầng')}</span>
-                ${realCount > 0
-                  ? `<span class="font-extrabold text-emerald-600 text-xs">${realCount} ca/tuần</span>`
-                  : `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold text-[11px]">Chưa có ca học</span>`}
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">${escapeHtml(r.floor)}</span>
+                  <h3 class="font-bold text-slate-900 text-sm mt-1">${escapeHtml(r.name)}</h3>
+                </div>
+                ${count > 0
+                  ? `<span class="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold shrink-0">${count} ca/tuần</span>`
+                  : `<span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-[11px] font-semibold shrink-0">Chưa có ca học</span>`}
               </div>
-              <div>
-                <h3 class="font-extrabold text-slate-900 text-base">${escapeHtml(r.name)}</h3>
-                <p class="text-xs text-slate-500 mt-0.5">🎹 ${escapeHtml(r.equipment || 'Cơ sở vật chất tiêu chuẩn')}</p>
-              </div>
-              <div class="pt-2 border-t border-slate-100 text-xs space-y-1">
-                <div><strong class="text-slate-700">Môn:</strong> <span class="text-slate-600">${escapeHtml(r.subjects || 'Tất cả')}</span></div>
-                <p class="text-slate-500 leading-relaxed">${escapeHtml(r.rule || '')}</p>
-              </div>
+              <div class="text-xs text-slate-600">🎹 <strong>Thiết bị:</strong> ${escapeHtml(r.equipment || 'Tiêu chuẩn')}</div>
+              <div class="text-xs text-indigo-700 font-medium">🎵 <strong>Môn học:</strong> ${escapeHtml(r.subjects || 'Đa bộ môn')}</div>
+              <div class="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-xl border border-slate-100">${escapeHtml(r.rule || '')}</div>
             </div>
-            <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-slate-100">
-              <button onclick="openClassForm(null, { room: '${escapeHtml(r.name)}' })" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold cursor-pointer">+ Xếp ca</button>
-              <div class="flex items-center gap-1.5">
-                <button onclick="openRoomForm('${r.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold cursor-pointer">✏️ Sửa</button>
-                <button onclick="confirmDeleteRoom('${r.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold cursor-pointer">🗑️ Xóa</button>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
+              <button onclick="openClassForm(null, { room: '${escapeHtml(r.name)}', day: state.selectedDay })" class="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold cursor-pointer">+ Xếp ca</button>
+              <div class="flex items-center gap-1">
+                <button onclick="openRoomForm('${r.id}')" class="px-2 py-1 rounded-lg hover:bg-slate-100 text-slate-600 text-xs font-semibold cursor-pointer">✏️ Sửa</button>
+                <button onclick="confirmDeleteRoom('${r.id}')" class="px-2 py-1 rounded-lg hover:bg-rose-50 text-rose-600 text-xs font-semibold cursor-pointer">🗑️</button>
               </div>
             </div>
           </div>
@@ -2580,16 +2674,16 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block font-bold text-slate-700 mb-1">Tên phòng học *</label>
-              <input type="text" id="rf-name" value="${escapeHtml(r?.name || '')}" placeholder="VD: Phòng 405" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+              <input type="text" id="rf-name" value="${escapeHtml(r?.name || '')}" placeholder="VD: Phòng 502" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
             </div>
             <div>
               <label class="block font-bold text-slate-700 mb-1">Tầng / Khu vực</label>
-              <input type="text" id="rf-floor" value="${escapeHtml(r?.floor || 'Tầng 4')}" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+              <input type="text" id="rf-floor" value="${escapeHtml(r?.floor || 'Tầng 1')}" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
             </div>
           </div>
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Thiết bị / Nhạc cụ trong phòng</label>
-            <input type="text" id="rf-equip" value="${escapeHtml(r?.equipment || '')}" placeholder="VD: Có 2 đàn piano điện, điều hòa..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+            <label class="block font-bold text-slate-700 mb-1">Thiết bị trong phòng</label>
+            <input type="text" id="rf-equip" value="${escapeHtml(r?.equipment || '')}" placeholder="VD: 2 đàn piano, điều hòa..." class="w-full px-3 py-2 rounded-xl border border-slate-200" />
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Bộ môn ưu tiên</label>
@@ -2603,16 +2697,16 @@
         `,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="saveRoomForm('${roomId || ''}')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer">💾 Lưu phòng học</button>
+          <button onclick="saveRoomForm('${roomId || ''}')" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold cursor-pointer">💾 Lưu phòng</button>
         `,
-        'max-w-lg'
+        'max-w-md'
       );
     }
 
     function saveRoomForm(roomId) {
       const name = (document.getElementById('rf-name').value || '').trim();
-      if (!name) { showToast('Vui lòng nhập tên phòng học!', 'error'); return; }
-      const floor = (document.getElementById('rf-floor').value || 'Tầng 1').trim();
+      if (!name) { showToast('Vui lòng nhập tên phòng!', 'error'); return; }
+      const floor = (document.getElementById('rf-floor').value || '').trim();
       const equipment = (document.getElementById('rf-equip').value || '').trim();
       const subjects = (document.getElementById('rf-subjects').value || '').trim();
       const rule = (document.getElementById('rf-rule').value || '').trim();
@@ -2627,7 +2721,7 @@
           }
         }
       } else {
-        state.rooms.push({ id: 'R' + Date.now().toString(36).toUpperCase(), name, floor, equipment, subjects, rule });
+        state.rooms.push({ id: 'R_' + Date.now().toString(36), name, floor, equipment, subjects, rule });
       }
       saveState();
       closeModal();
@@ -2643,7 +2737,7 @@
         `<p class="text-slate-700">Bạn có chắc chắn muốn xóa <strong>${escapeHtml(r.name)}</strong> khỏi sơ đồ phòng học không?</p>`,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="executeDeleteRoom('${roomId}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa phòng</button>
+          <button onclick="executeDeleteRoom('${roomId}')" class="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold cursor-pointer">Xóa phòng</button>
         `,
         'max-w-md'
       );
@@ -2658,52 +2752,44 @@
     }
 
     // -------------------------------------------------------------------------
-    // 12. QUẢN LÝ GIÁO VIÊN (CHỌN NHIỀU / SỬA & XÓA HÀNG LOẠT / EXCEL)
+    // 13. QUẢN LÝ GIÁO VIÊN & DANH BẠ HỌC VIÊN
     // -------------------------------------------------------------------------
-    function getFilteredTeachers() {
-      const kw = (document.getElementById('teacher-search').value || '').trim().toLowerCase();
-      return state.teachers.filter(t => !kw || `${t.name} ${t.phone} ${t.subject} ${t.school}`.toLowerCase().includes(kw));
-    }
-
     function renderTeachers() {
+      const kw = (document.getElementById('teacher-search').value || '').trim().toLowerCase();
+      const list = state.teachers.filter(t => !kw || `${t.name} ${t.phone} ${t.subject} ${t.school}`.toLowerCase().includes(kw));
       document.getElementById('teacher-count').textContent = state.teachers.length;
-      const rows = getFilteredTeachers();
-      const grid = document.getElementById('teachers-grid');
 
-      if (!rows.length) {
-        grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">Chưa có giáo viên nào phù hợp.</div>`;
+      const grid = document.getElementById('teachers-grid');
+      if (!list.length) {
+        grid.innerHTML = `<div class="col-span-full bg-white p-8 rounded-2xl border border-slate-200 text-center text-xs text-slate-400">Không tìm thấy giáo viên phù hợp.</div>`;
         updateTeacherBulkUI();
         return;
       }
 
-      grid.innerHTML = rows.map(t => {
+      grid.innerHTML = list.map(t => {
+        const classCount = state.classes.filter(c => c.teacher === t.name).length;
         const isSel = selectedTeacherIds.has(t.id);
-        const weeklyClasses = state.classes.filter(c => c.teacher === t.name).length;
         return `
-          <div class="bg-white rounded-2xl border ${isSel ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-slate-200'} p-4 shadow-2xs flex flex-col justify-between gap-3 transition">
-            <div class="space-y-2">
+          <div class="bg-white p-4 rounded-2xl border ${isSel ? 'border-indigo-400 bg-indigo-50/40' : 'border-slate-200'} shadow-2xs flex flex-col justify-between space-y-3">
+            <div class="space-y-1.5">
               <div class="flex items-start justify-between gap-2">
-                <label class="inline-flex items-center gap-2 cursor-pointer">
+                <label class="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSingleTeacherCheck('${t.id}', this.checked)" class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
-                  <span class="font-mono text-[11px] text-slate-400">${escapeHtml(t.id)}</span>
+                  <span class="font-bold text-slate-900 text-sm">${escapeHtml(t.name)}</span>
                 </label>
-                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">${weeklyClasses} ca/tuần</span>
+                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-bold">${classCount} ca/tuần</span>
               </div>
-              <div>
-                <h3 class="font-extrabold text-slate-900 text-base">${escapeHtml(t.name)}</h3>
-                <div class="text-xs text-slate-600 mt-1">📞 ${escapeHtml(t.phone || 'Chưa có SĐT')}</div>
-                <div class="text-xs text-slate-600 mt-0.5">🎵 Môn: <strong>${escapeHtml(t.subject || 'Chưa cập nhật')}</strong></div>
-                <div class="text-xs text-slate-500 mt-0.5">🎓 ${escapeHtml(t.school || 'Chưa cập nhật trường')}</div>
-              </div>
+              <div class="text-xs text-slate-600">📞 ${escapeHtml(t.phone || 'Chưa có SĐT')}</div>
+              <div class="text-xs text-indigo-700 font-semibold">🎵 Môn dạy: ${escapeHtml(t.subject || 'Chưa cập nhật')}</div>
+              <div class="text-[11px] text-slate-500">🎓 ${escapeHtml(t.school || 'Chưa cập nhật trường')}</div>
             </div>
-            <div class="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
-              <button onclick="openTeacherForm('${t.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold cursor-pointer">✏️ Sửa</button>
-              <button onclick="confirmDeleteTeacher('${t.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold cursor-pointer">🗑️ Xóa</button>
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-end gap-1.5">
+              <button onclick="openTeacherForm('${t.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer">✏️ Sửa</button>
+              <button onclick="confirmDeleteTeacher('${t.id}')" class="px-2.5 py-1 rounded-lg hover:bg-rose-50 text-rose-600 text-xs font-semibold cursor-pointer">🗑️</button>
             </div>
           </div>
         `;
       }).join('');
-
       updateTeacherBulkUI();
     }
 
@@ -2714,7 +2800,7 @@
     }
 
     function selectAllTeachers() {
-      getFilteredTeachers().forEach(t => selectedTeacherIds.add(t.id));
+      state.teachers.forEach(t => selectedTeacherIds.add(t.id));
       renderTeachers();
     }
 
@@ -2740,13 +2826,15 @@
             <label class="block font-bold text-slate-700 mb-1">Tên giáo viên *</label>
             <input type="text" id="tf-name" value="${escapeHtml(t?.name || '')}" placeholder="VD: Cô Hà Thanh Trang" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
           </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Số điện thoại</label>
-            <input type="text" id="tf-phone" value="${escapeHtml(t?.phone || '')}" placeholder="VD: 0912345678" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Môn dạy</label>
-            <input type="text" id="tf-subject" value="${escapeHtml(t?.subject || '')}" placeholder="VD: Piano, Thanh nhạc" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Số điện thoại</label>
+              <input type="text" id="tf-phone" value="${escapeHtml(t?.phone || '')}" placeholder="VD: 0912401105" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Môn dạy</label>
+              <input type="text" id="tf-subject" value="${escapeHtml(t?.subject || '')}" placeholder="VD: Thanh nhạc, Piano" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
+            </div>
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Tốt nghiệp từ</label>
@@ -2756,7 +2844,7 @@
         `,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="saveTeacherForm('${teacherId || ''}')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer">💾 Lưu giáo viên</button>
+          <button onclick="saveTeacherForm('${teacherId || ''}')" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold cursor-pointer">💾 Lưu giáo viên</button>
         `,
         'max-w-md'
       );
@@ -2774,7 +2862,9 @@
         if (idx !== -1) {
           const oldName = state.teachers[idx].name;
           state.teachers[idx] = { ...state.teachers[idx], name, phone, subject, school };
-          if (oldName !== name) state.classes.forEach(c => { if (c.teacher === oldName) c.teacher = name; });
+          if (oldName !== name) {
+            state.classes.forEach(c => { if (c.teacher === oldName) c.teacher = name; });
+          }
         }
       } else {
         state.teachers.push({
@@ -2792,41 +2882,30 @@
       const cnt = selectedTeacherIds.size;
       if (!cnt) return;
       openModal(
-        `✏️ Sửa hàng loạt ${cnt} giáo viên đã chọn`,
+        `✏️ Sửa bộ môn hàng loạt (${cnt} giáo viên)`,
         `
         <div class="space-y-3 text-xs">
-          <p class="text-slate-500">Để trống ô nào nếu muốn giữ nguyên giá trị hiện tại của từng giáo viên.</p>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Cập nhật Môn dạy chung</label>
-            <input type="text" id="bt-subject" placeholder="VD: Piano" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Cập nhật Trường tốt nghiệp chung</label>
-            <input type="text" id="bt-school" placeholder="VD: Học viện Âm nhạc Quốc gia VN" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
-          </div>
+          <label class="block font-bold text-slate-700 mb-1">Bộ môn áp dụng cho ${cnt} giáo viên đã chọn</label>
+          <input type="text" id="bt-subject" placeholder="VD: Piano" class="w-full px-3 py-2 rounded-xl border border-slate-200" />
         </div>
         `,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="applyBulkTeacherEdit()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold cursor-pointer">Cập nhật ${cnt} giáo viên</button>
+          <button onclick="applyBulkTeacherEdit()" class="px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold cursor-pointer">Cập nhật</button>
         `,
         'max-w-md'
       );
     }
 
     function applyBulkTeacherEdit() {
-      const sub = (document.getElementById('bt-subject').value || '').trim();
-      const sch = (document.getElementById('bt-school').value || '').trim();
+      const subject = (document.getElementById('bt-subject').value || '').trim();
       state.teachers.forEach(t => {
-        if (selectedTeacherIds.has(t.id)) {
-          if (sub) t.subject = sub;
-          if (sch) t.school = sch;
-        }
+        if (selectedTeacherIds.has(t.id) && subject) t.subject = subject;
       });
       saveState();
       closeModal();
       renderTeachers();
-      showToast('Đã cập nhật hàng loạt giáo viên!');
+      showToast('Đã cập nhật bộ môn hàng loạt!');
     }
 
     function confirmDeleteTeacher(id) {
@@ -2839,10 +2918,10 @@
       if (!cnt) return;
       openModal(
         '🗑️ Xác nhận xóa giáo viên',
-        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa <strong>${cnt} giáo viên</strong> đã chọn khỏi danh sách không?</p>`,
+        `<p class="text-slate-700">Bạn có chắc chắn muốn xóa <strong>${cnt} giáo viên</strong> đã chọn không?</p>`,
         `
           <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold">Hủy</button>
-          <button onclick="executeBulkDeleteTeachers()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer">Xóa ${cnt} giáo viên</button>
+          <button onclick="executeBulkDeleteTeachers()" class="px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold cursor-pointer">Xóa ${cnt} giáo viên</button>
         `,
         'max-w-md'
       );
@@ -2861,7 +2940,7 @@
     function downloadTeacherTemplateXLSX() {
       const ws = XLSX.utils.aoa_to_sheet([
         ['Tên giáo viên', 'Số điện thoại', 'Môn dạy', 'Tốt nghiệp từ'],
-        ['Cô Nguyễn Lan Anh', '0912345678', 'Piano, Thanh nhạc', 'Học viện Âm nhạc Quốc gia VN']
+        ['Cô Hà Thanh Trang', '0912401105', 'Thanh nhạc', 'Học viện Âm nhạc Quốc gia VN']
       ]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'MauGiaoVien');
@@ -2875,8 +2954,7 @@
       reader.onload = ev => {
         try {
           const wb = XLSX.read(ev.target.result, { type: 'array' });
-          const sheet = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(sheet);
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
           let count = 0;
           rows.forEach(r => {
             const name = (r['Tên giáo viên'] || r['Họ và tên'] || r['Name'] || '').toString().trim();
@@ -2901,61 +2979,47 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // -------------------------------------------------------------------------
-    // 13. QUẢN LÝ HỌC VIÊN (KHÔNG CÒN NHẬP SỐ GIỜ KHÓA HỌC)
-    // -------------------------------------------------------------------------
-    function getFilteredStudents() {
-      const kw = (document.getElementById('student-search').value || '').trim().toLowerCase();
-      return state.students.filter(s => !kw || `${s.id} ${s.name} ${s.phone} ${s.dob} ${s.courseNote}`.toLowerCase().includes(kw));
-    }
-
     function renderStudents() {
+      const kw = (document.getElementById('student-search').value || '').trim().toLowerCase();
+      const list = state.students.filter(s => !kw || `${s.id} ${s.name} ${s.phone} ${s.dob} ${s.courseNote}`.toLowerCase().includes(kw));
       document.getElementById('student-count').textContent = state.students.length;
-      const rows = getFilteredStudents();
-      const tbody = document.getElementById('students-table-body');
 
-      if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-xs text-slate-400">Chưa có học viên nào phù hợp.</td></tr>`;
+      const tbody = document.getElementById('students-table-body');
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-xs text-slate-400">Chưa có học viên nào phù hợp tìm kiếm.</td></tr>`;
         updateStudentBulkUI([]);
         return;
       }
 
-      tbody.innerHTML = rows.map(s => {
+      tbody.innerHTML = list.map(s => {
         const isSel = selectedStudentIds.has(s.id);
-        const enrolledClasses = state.classes.filter(c => (c.students || []).some(sn => sn.toLowerCase() === s.name.toLowerCase()));
-        const scheduleBadges = enrolledClasses.length
-          ? enrolledClasses.map(c => {
-              const st = getSubjectStyle(c.subject);
-              return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${st.bg} ${st.text} border ${st.border}">
-                ${escapeHtml(c.subject)} (${escapeHtml(c.day)} ${c.start})
-              </span>`;
-            }).join(' ')
-          : `<span class="text-slate-400 text-[11px]">Chưa xếp lớp</span>`;
+        const enrolled = state.classes.filter(c => (c.students || []).some(sn => sn.toLowerCase() === s.name.toLowerCase()));
+        const scheduleBadges = enrolled.length
+          ? enrolled.map(c => `<span class="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-semibold mr-1 mb-1">${escapeHtml(c.subject)} (${escapeHtml(c.day)} ${c.start})</span>`).join('')
+          : `<span class="text-slate-400 text-xs">Chưa xếp lớp</span>`;
 
         return `
-          <tr class="hover:bg-slate-50/80 transition ${isSel ? 'bg-indigo-50/60' : ''}">
+          <tr class="hover:bg-slate-50 ${isSel ? 'bg-indigo-50/50' : ''}">
             <td class="py-2.5 px-3 text-center">
               <input type="checkbox" ${isSel ? 'checked' : ''} onchange="toggleSingleStudentCheck('${s.id}', this.checked)" class="w-4 h-4 rounded accent-indigo-600 cursor-pointer" />
             </td>
             <td class="py-2.5 px-4 font-mono text-xs text-slate-500">${escapeHtml(s.id)}</td>
             <td class="py-2.5 px-4 font-bold text-slate-900 text-xs">${escapeHtml(s.name)}</td>
-            <td class="py-2.5 px-4 text-xs">
-              <div class="text-slate-700 font-medium">📞 ${escapeHtml(s.phone || 'Chưa có SĐT')}</div>
+            <td class="py-2.5 px-4 text-xs text-slate-600">
+              <div>📞 ${escapeHtml(s.phone || 'Chưa có SĐT')}</div>
               ${s.dob ? `<div class="text-[11px] text-slate-400">🎂 ${formatDateVN(s.dob)}</div>` : ''}
             </td>
-            <td class="py-2.5 px-4"><div class="flex flex-wrap gap-1">${scheduleBadges}</div></td>
-            <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(s.courseNote || '—')}</td>
-            <td class="py-2.5 px-4 text-right">
-              <div class="inline-flex items-center gap-1.5">
-                <button onclick="openStudentForm('${s.id}')" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-semibold cursor-pointer">✏️ Sửa</button>
-                <button onclick="confirmDeleteStudent('${s.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold cursor-pointer">🗑️ Xóa</button>
-              </div>
+            <td class="py-2.5 px-4">${scheduleBadges}</td>
+            <td class="py-2.5 px-4 text-xs text-slate-600">${escapeHtml(s.courseNote || '-')}</td>
+            <td class="py-2.5 px-4 text-right space-x-1">
+              <button onclick="openStudentForm('${s.id}')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer">✏️ Sửa</button>
+              <button onclick="confirmDeleteStudent('${s.id}')" class="px-2.5 py-1 rounded-lg hover:bg-rose-50 text-rose-600 text-xs font-semibold cursor-pointer">🗑️</button>
             </td>
           </tr>
         `;
       }).join('');
 
-      updateStudentBulkUI(rows);
+      updateStudentBulkUI(list);
     }
 
     function toggleSingleStudentCheck(id, checked) {
@@ -2965,7 +3029,9 @@
     }
 
     function toggleMasterStudentCheck(checked) {
-      getFilteredStudents().forEach(s => {
+      const kw = (document.getElementById('student-search').value || '').trim().toLowerCase();
+      const visible = state.students.filter(s => !kw || `${s.id} ${s.name} ${s.phone} ${s.dob} ${s.courseNote}`.toLowerCase().includes(kw));
+      visible.forEach(s => {
         if (checked) selectedStudentIds.add(s.id);
         else selectedStudentIds.delete(s.id);
       });
@@ -2973,7 +3039,7 @@
     }
 
     function selectAllStudents() {
-      getFilteredStudents().forEach(s => selectedStudentIds.add(s.id));
+      state.students.forEach(s => selectedStudentIds.add(s.id));
       renderStudents();
     }
 
@@ -2982,14 +3048,14 @@
       renderStudents();
     }
 
-    function updateStudentBulkUI(visibleRows) {
+    function updateStudentBulkUI(visibleList) {
       const cnt = selectedStudentIds.size;
       document.getElementById('selected-student-count').textContent = cnt;
       document.getElementById('btn-bulk-edit-students').disabled = cnt === 0;
       document.getElementById('btn-bulk-delete-students').disabled = cnt === 0;
       const master = document.getElementById('student-master-checkbox');
       if (master) {
-        master.checked = visibleRows.length > 0 && visibleRows.every(r => selectedStudentIds.has(r.id));
+        master.checked = visibleList.length > 0 && visibleList.every(s => selectedStudentIds.has(s.id));
       }
     }
 
