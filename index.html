@@ -119,9 +119,13 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
           </button>
           <div id="backup-menu" onclick="event.stopPropagation()" class="hidden absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs">
-            <button onclick="exportCSV(); closeBackupMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700">
-              <span>📥</span> Xuất lịch ra file CSV (Excel)
+            <button onclick="exportClassesExcel(); closeBackupMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700">
+              <span>📥</span> Xuất file ca học (.xlsx)
             </button>
+            <label class="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700 cursor-pointer">
+              <span>📤</span> Nhập file ca học (.xlsx/.csv)
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="importClassesExcel(event); closeBackupMenu();" class="hidden" />
+            </label>
             <button onclick="exportJSON(); closeBackupMenu();" class="w-full text-left px-3.5 py-2 hover:bg-slate-50 flex items-center gap-2 text-slate-700">
               <span>💾</span> Sao lưu dữ liệu cơ sở này (.json)
             </button>
@@ -189,6 +193,16 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div id="day-selector" class="flex items-center gap-1 overflow-x-auto pb-0.5 sm:pb-0"></div>
           <div class="flex items-center gap-1.5 flex-wrap">
+            <button type="button" onclick="downloadClassTemplateXLSX()" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer" title="Tải file Excel mẫu chuẩn cột để nhập lịch ca học">
+              <span>📄</span> Mẫu Excel
+            </button>
+            <label class="px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer" title="Nhập danh sách ca học từ file Excel (.xlsx, .xls, .csv)">
+              <span>📤</span> Nhập file ca học
+              <input type="file" accept=".xlsx,.xls,.csv" onchange="importClassesExcel(event)" class="hidden" />
+            </label>
+            <button type="button" onclick="exportClassesExcel()" class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer" title="Xuất toàn bộ danh sách ca học ra file Excel">
+              <span>📥</span> Xuất file ca học
+            </button>
             <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
               <button onclick="setScheduleMode('grid')" id="mode-grid" class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white text-indigo-700 shadow-2xs transition cursor-pointer">
                 ▦ Lưới 10 Phòng
@@ -3261,15 +3275,189 @@
       document.getElementById('backup-menu').classList.add('hidden');
     }
 
-    function exportCSV() {
+    function normalizeImportedDay(raw) {
+      const s = String(raw || '').trim().toLowerCase();
+      if (!s) return 'Thứ 2';
+      if (s.includes('cn') || s.includes('chủ nhật') || s.includes('chu nhat') || s === '8') return 'Chủ nhật';
+      const match = s.match(/[2-7]/);
+      if (match) return `Thứ ${match[0]}`;
+      return 'Thứ 2';
+    }
+
+    function normalizeImportedTime(raw, fallback = '09:00') {
+      if (raw === null || raw === undefined || raw === '') return fallback;
+      if (typeof raw === 'number') {
+        const totalMins = Math.round(raw * 24 * 60);
+        const h = Math.floor(totalMins / 60) % 24;
+        const m = totalMins % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+      const str = String(raw).trim().replace('h', ':').replace('H', ':');
+      const parts = str.split(':');
+      if (parts.length >= 2) {
+        const h = Math.min(23, Math.max(0, parseInt(parts[0], 10) || 0));
+        const m = Math.min(59, Math.max(0, parseInt(parts[1], 10) || 0));
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      }
+      return fallback;
+    }
+
+    function downloadClassTemplateXLSX() {
+      const rows = [
+        ['Thứ', 'Giờ bắt đầu', 'Giờ kết thúc', 'Phòng học', 'Bộ môn', 'Tên lớp', 'Giáo viên', 'Loại lớp', 'Học viên', 'Trạng thái'],
+        ['Thứ 2', '16:30', '17:30', 'Phòng 401', 'Piano', 'Piano CN Minh Anh', 'Cô Hiền', 'Cá nhân', 'Minh Anh', 'Đang học'],
+        ['Thứ 7', '09:00', '10:30', 'Phòng 303', 'Piano', 'Piano Nhóm Sáng T7', 'Thầy An', 'Nhóm', 'Bảo An, Thùy Minh, Mít', 'Đang học']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'MauLichCaHoc');
+      XLSX.writeFile(wb, 'Mau_Nhap_CaHoc_MusicTalent.xlsx');
+      showToast('Đã tải file Excel mẫu ca học!');
+    }
+
+    function exportClassesExcel() {
+      if (!state.classes.length) {
+        showToast('Hiện chưa có ca học nào để xuất!', 'warn');
+        return;
+      }
+      const sorted = [...state.classes].sort((a, b) => {
+        const dDiff = DAYS_ORDER.indexOf(a.day) - DAYS_ORDER.indexOf(b.day);
+        return dDiff !== 0 ? dDiff : a.start.localeCompare(b.start);
+      });
       const rows = [['Thứ', 'Giờ bắt đầu', 'Giờ kết thúc', 'Phòng học', 'Bộ môn', 'Tên lớp', 'Giáo viên', 'Loại lớp', 'Học viên', 'Trạng thái']];
-      state.classes.forEach(c => {
-        rows.push([c.day, c.start, c.end, c.room, c.subject, c.name, c.teacher, c.type, (c.students || []).join(', '), c.status]);
+      sorted.forEach(c => {
+        rows.push([
+          c.day,
+          c.start,
+          c.end,
+          c.room,
+          c.subject,
+          c.name,
+          c.teacher,
+          c.type,
+          (c.students || []).join(', '),
+          c.status
+        ]);
       });
       const ws = XLSX.utils.aoa_to_sheet(rows);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'LichPhongHoc');
-      XLSX.writeFile(wb, `LichPhongHoc_${state.workingDate}.xlsx`);
+      XLSX.utils.book_append_sheet(wb, ws, 'LichCaHoc');
+      XLSX.writeFile(wb, `DanhSach_CaHoc_${state.workingDate}.xlsx`);
+      showToast(`Đã xuất ${sorted.length} ca học ra file Excel!`);
+    }
+
+    let pendingImportedClasses = [];
+
+    function importClassesExcel(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const wb = XLSX.read(ev.target.result, { type: 'array' });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          const parsedList = [];
+
+          rows.forEach((r, idx) => {
+            const rawDay = r['Thứ'] || r['Thu'] || r['Ngày học'] || '';
+            const rawStart = r['Giờ bắt đầu'] || r['Bắt đầu'] || r['Start'] || '';
+            const rawEnd = r['Giờ kết thúc'] || r['Kết thúc'] || r['End'] || '';
+            const rawRoom = String(r['Phòng học'] || r['Phòng'] || r['Room'] || '').trim();
+            const rawSubject = String(r['Bộ môn'] || r['Môn'] || r['Subject'] || '').trim();
+            const rawName = String(r['Tên lớp'] || r['Lớp'] || r['Name'] || '').trim();
+            const rawTeacher = String(r['Giáo viên'] || r['GV'] || r['Teacher'] || '').trim();
+            const rawType = String(r['Loại lớp'] || r['Loại'] || r['Type'] || 'Cá nhân').trim();
+            const rawStudents = String(r['Học viên'] || r['Danh sách học viên'] || r['Students'] || '').trim();
+            const rawStatus = String(r['Trạng thái'] || r['Status'] || 'Đang học').trim();
+
+            if (!rawDay && !rawRoom && !rawSubject && !rawName && !rawTeacher) return;
+
+            const day = normalizeImportedDay(rawDay);
+            const start = normalizeImportedTime(rawStart, '09:00');
+            const end = normalizeImportedTime(rawEnd, minutesToTime(timeToMinutes(start) + 60));
+
+            const matchedRoom = state.rooms.find(rm => rm.name.toLowerCase() === rawRoom.toLowerCase() || rm.name.toLowerCase().includes(rawRoom.toLowerCase()));
+            const room = matchedRoom ? matchedRoom.name : (rawRoom || (state.rooms[0]?.name || 'Phòng 401'));
+
+            const subject = rawSubject || 'Piano';
+            const students = rawStudents ? rawStudents.split(/[,;]/).map(s => s.trim()).filter(Boolean) : [];
+            const type = ['Cá nhân', 'Đôi', 'Nhóm', 'Học thử', 'Học bù'].includes(rawType) ? rawType : 'Cá nhân';
+            const status = ['Đang học', 'Tạm nghỉ', 'Đã hủy'].includes(rawStatus) ? rawStatus : 'Đang học';
+            const teacher = rawTeacher || 'Chưa phân công';
+            const name = rawName || `${subject} - ${type}${students.length === 1 ? ' ' + students[0] : ''}`;
+
+            parsedList.push({
+              id: 'CL' + Date.now().toString(36).toUpperCase() + '_' + idx,
+              day,
+              room,
+              start,
+              end,
+              subject,
+              name,
+              teacher,
+              type,
+              status,
+              students
+            });
+          });
+
+          if (!parsedList.length) {
+            showToast('Không tìm thấy dòng dữ liệu ca học hợp lệ trong file!', 'error');
+            e.target.value = '';
+            return;
+          }
+
+          pendingImportedClasses = parsedList;
+          openModal(
+            '📤 Xác nhận nhập file ca học',
+            `
+              <div class="space-y-3 text-xs">
+                <p class="text-slate-700">Đã đọc được <strong>${parsedList.length} ca học</strong> hợp lệ từ file <strong>${escapeHtml(file.name)}</strong>.</p>
+                <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200 space-y-1 text-slate-700">
+                  <div>• Tự động bổ sung học viên mới vào danh bạ <strong>Học viên</strong>.</div>
+                  <div>• Tự động cập nhật số lượng ca thực tế trên từng <strong>Phòng học</strong>.</div>
+                </div>
+                <p class="text-slate-600 font-semibold">Bạn muốn nhập theo hình thức nào?</p>
+              </div>
+            `,
+            `
+              <button onclick="closeModal()" class="px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold cursor-pointer">Hủy</button>
+              <button onclick="applyImportedClasses('replace')" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold cursor-pointer">🔄 Thay thế toàn bộ lịch cũ</button>
+              <button onclick="applyImportedClasses('append')" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold cursor-pointer">➕ Thêm nối tiếp vào lịch</button>
+            `,
+            'max-w-lg'
+          );
+        } catch (err) {
+          showToast('Lỗi đọc file Excel/CSV ca học!', 'error');
+        }
+        e.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function applyImportedClasses(mode) {
+      if (!pendingImportedClasses.length) return;
+      let newStudentsAdded = 0;
+      pendingImportedClasses.forEach(c => {
+        newStudentsAdded += ensureStudentsInDirectory(c.students);
+      });
+
+      if (mode === 'replace') {
+        state.classes = [...pendingImportedClasses];
+        state.attendance = {};
+      } else {
+        state.classes.push(...pendingImportedClasses);
+      }
+
+      const count = pendingImportedClasses.length;
+      pendingImportedClasses = [];
+      selectedClassIds.clear();
+      saveState();
+      closeModal();
+      renderSchedule();
+      refreshAlertCenter();
+      showToast(`Đã nhập ${count} ca học${newStudentsAdded > 0 ? ` & thêm ${newStudentsAdded} HV mới` : ''}!`);
     }
 
     function exportJSON() {
